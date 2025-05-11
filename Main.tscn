@@ -67,7 +67,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.119249, 0.112541, 0.131199, 1)
+color = Color(0.117647, 0.117647, 0.180392, 1)
 
 [node name="CodeEditor" parent="HSplitContainer/Control/VSplitContainer/Control" instance=ExtResource("4_cm0pq")]
 unique_name_in_owner = true
