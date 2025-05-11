@@ -1,0 +1,75 @@
+[gd_scene load_steps=4 format=3 uid="uid://b8cplu7lyibjj"]
+
+[ext_resource type="Script" uid="uid://bfk5svwpqopem" path="res://Main.cs" id="1_glv2v"]
+[ext_resource type="PackedScene" uid="uid://b2vppnh6ixp8b" path="res://Components/FileExplorer/FileExplorer.tscn" id="2_r0du0"]
+[ext_resource type="PackedScene" uid="uid://bpjq7ppqs66lb" path="res://Components/CodeEditor/CodeEditor.tscn" id="4_cm0pq"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_glv2v")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 300
+dragging_enabled = false
+dragger_visibility = 2
+
+[node name="Control2" type="Control" parent="HSplitContainer"]
+layout_mode = 2
+
+[node name="ColorRect" type="ColorRect" parent="HSplitContainer/Control2"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0705882, 0.0705882, 0.109804, 1)
+
+[node name="FileExplorer" parent="HSplitContainer/Control2" instance=ExtResource("2_r0du0")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="Control" type="Control" parent="HSplitContainer"]
+layout_mode = 2
+
+[node name="VSplitContainer" type="VSplitContainer" parent="HSplitContainer/Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 400
+collapsed = true
+dragger_visibility = 2
+
+[node name="Control2" type="Control" parent="HSplitContainer/Control/VSplitContainer"]
+layout_mode = 2
+
+[node name="Control" type="Control" parent="HSplitContainer/Control/VSplitContainer"]
+layout_mode = 2
+
+[node name="ColorRect2" type="ColorRect" parent="HSplitContainer/Control/VSplitContainer/Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.119249, 0.112541, 0.131199, 1)
+
+[node name="CodeEditor" parent="HSplitContainer/Control/VSplitContainer/Control" instance=ExtResource("4_cm0pq")]
+unique_name_in_owner = true
+layout_mode = 1

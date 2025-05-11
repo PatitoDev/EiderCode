@@ -1,0 +1,11 @@
+<Project Sdk="Godot.NET.Sdk/4.4.1">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TextMateSharp" Version="1.0.66" />
+    <PackageReference Include="TextMateSharp.Grammars" Version="1.0.66" />
+  </ItemGroup>
+</Project>
