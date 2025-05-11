@@ -348,7 +348,6 @@ public partial class FileExplorer : Control
     {
         var currentRelativePath = (node.GetMeta(ItemMetadataKeys.RelativePath.ToString()))
             .AsString();
-        //GD.Print(relativePath + " ", currentRelativePath);
         if (currentRelativePath == relativePath) return node;
 
         foreach (var child in node.GetChildren()) {
@@ -400,6 +399,7 @@ public partial class FileExplorer : Control
         node.SetText(0, folder);
         node.SetIconMaxWidth(0, fontSize + iconRelativeSize);
         node.SetSelectable(0, false);
+        node.SetSelectable(1, false);
         node.Collapsed = !isRoot;
 
         if (_fileIconProvider.HasLoaded)
