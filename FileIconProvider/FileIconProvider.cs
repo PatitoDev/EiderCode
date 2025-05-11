@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,26 +11,36 @@ public record FileIcon
     public required CompressedTexture2D Texture { init; get; }
 }
 
+public enum IconThemeKey {
+    Frappe,
+    Latte,
+    Macchiato,
+    Mocha
+}
+
+
+
 public class FileIconProvider
 {
-    private IReadOnlyList<string> _iconThemes = new List<string>() {
-      "frappe",
-      "latte",
-      "macchiato",
-      "mocha"
+    private IReadOnlyDictionary<IconThemeKey, string> _iconThemeKeyMap = new Dictionary<IconThemeKey, string>(){
+        { IconThemeKey.Frappe, "frappe" },
+        { IconThemeKey.Latte, "latte" },
+        { IconThemeKey.Macchiato, "macchiato" },
+        { IconThemeKey.Mocha, "mocha" },
     };
 
-    private IconTheme _iconTheme;
-    private Dictionary<string, FileIcon> _iconTextureMap;
+    public bool HasLoaded { get; private set; } = false;
+    private IconTheme? _iconTheme;
+    private Dictionary<string, FileIcon>? _iconTextureMap;
 
     public FileIconProvider()
     {
-        _loadIconTheme(3);
     }
 
-    private void _loadIconTheme(int themeId)
+    public void LoadIconTheme(IconThemeKey iconThemeKey)
     {
-        var themeJson = GD.Load<Json>($"res://Icons/catppuccin/{_iconThemes[themeId]}/theme.json");
+        HasLoaded = false;
+        var themeJson = GD.Load<Json>($"res://Icons/catppuccin/{_iconThemeKeyMap[iconThemeKey]}/theme.json");
         var themeString = themeJson.Data.As<string>();
 
         _iconTheme = JsonSerializer.Deserialize<IconTheme>(themeString, new JsonSerializerOptions()
@@ -43,16 +54,20 @@ public class FileIconProvider
           item =>
           {
               var icon = GD.Load<CompressedTexture2D>(
-                "res://" + Path.Combine($"/Icons/catppuccin/{_iconThemes[themeId]}", item.Value.IconPath)
+                "res://" + Path.Combine($"/Icons/catppuccin/{_iconThemeKeyMap[iconThemeKey]}", item.Value.IconPath)
               );
 
               return new FileIcon() { Texture = icon };
           }
-          );
+        );
+        HasLoaded = true;
     }
 
     public FileIcon GetFolderIcon(string fileName, bool isOpen, bool isRoot)
     {
+        if (_iconTheme == null || _iconTextureMap == null)
+            throw new Exception("Icons not loaded");
+
         if (isRoot)
         {
             return isOpen ?
@@ -82,6 +97,9 @@ public class FileIconProvider
 
     public FileIcon GetFileIcon(string fileName)
     {
+        if (_iconTheme == null || _iconTextureMap == null)
+            throw new Exception("Icons not loaded");
+
         if (_iconTheme.FileNames.TryGetValue(fileName, out var fileNameMatch))
         {
             return _iconTextureMap[fileNameMatch];

@@ -1,8 +1,8 @@
 using Godot;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 public enum ItemMetadataKeys {
     IsFolder,
@@ -24,6 +24,20 @@ public partial class FileExplorer : Control
     private int iconRelativeSize = 5;
     private int fontSize = 20;
 
+    public FileExplorer() {
+        Task.Run(() => {
+            _fileIconProvider.LoadIconTheme(IconThemeKey.Mocha);
+            CallDeferred(FileExplorer.MethodName.InitFileIcons);
+        });
+    }
+
+    public void InitFileIcons()
+    {
+        if (treeNode == null) return;
+        var root = treeNode.GetRoot();
+        UpdateIconTextureRecursive(root, treeNode);
+    }
+
     public override void _Ready()
     {
         treeNode = GetNode<Tree>("%FileTree");
@@ -38,12 +52,15 @@ public partial class FileExplorer : Control
 
         treeNode.ItemCollapsed += (item) => {
             var isRoot = treeNode.GetRoot() == item;
-            var icon = _fileIconProvider.GetFolderIcon(
-                item.GetText(0),
-                !item.Collapsed,
-                isRoot
-            );
-            item.SetIcon(0, icon.Texture);
+            if (_fileIconProvider.HasLoaded)
+            {
+                var icon = _fileIconProvider.GetFolderIcon(
+                    item.GetText(0),
+                    !item.Collapsed,
+                    isRoot
+                );
+                item.SetIcon(0, icon.Texture);
+            }
         };
 
         treeNode.ItemSelected += () => {
@@ -58,10 +75,10 @@ public partial class FileExplorer : Control
         CreateTreeFolder(testDirPath, testTargetFolder, null, treeNode);
         SubscribeToDirChanges(Path.GetFullPath(testDirPath));
 
-        HandleTreeClick();
+        AddTreeClickEventListener();
     }
 
-    public void HandleTreeClick()
+    public void AddTreeClickEventListener()
     {
         if (treeNode == null) return;
         treeNode.GuiInput += (e) => {
@@ -202,11 +219,13 @@ public partial class FileExplorer : Control
 
         var isRoot = treeNode?.GetRoot() == node;
         var isFolder = (node.GetMeta(ItemMetadataKeys.IsFolder.ToString(), newName)).AsBool();
-        var icon = isFolder ?
-            _fileIconProvider.GetFolderIcon(newName, !node.Collapsed, isRoot) :
-            _fileIconProvider.GetFileIcon(newName);
 
-        node.SetIcon(0, icon.Texture);
+        if (_fileIconProvider.HasLoaded){
+            var icon = isFolder ?
+                _fileIconProvider.GetFolderIcon(newName, !node.Collapsed, isRoot) :
+                _fileIconProvider.GetFileIcon(newName);
+            node.SetIcon(0, icon.Texture);
+        }
         node.SetMeta(ItemMetadataKeys.Name.ToString(), newName);
 
         if (isRoot) {
@@ -284,6 +303,23 @@ public partial class FileExplorer : Control
         }
     }
 
+    public void UpdateIconTextureRecursive(TreeItem treeItem, Tree tree)
+    {
+        var isFolder = (treeItem.GetMeta(ItemMetadataKeys.IsFolder.ToString())).AsBool();
+        var isOpen = !treeItem.Collapsed;
+        var isRoot = tree.GetRoot() == treeItem;
+
+        var icon = isFolder ?
+            _fileIconProvider.GetFolderIcon(treeItem.GetText(0), isOpen, isRoot) :
+            _fileIconProvider.GetFileIcon(treeItem.GetText(0));
+        treeItem.SetIcon(0, icon.Texture);
+
+        foreach (var child in treeItem.GetChildren())
+        {
+            UpdateIconTextureRecursive(child, tree);
+        }
+    }
+
     public TreeItem CreateTreeFolder(
       string path,
       string folder,
@@ -294,14 +330,18 @@ public partial class FileExplorer : Control
     {
         var currentPath = Path.GetFullPath(Path.Combine(path, folder));
         var isRoot = parentItem == null;
-        var icon = _fileIconProvider.GetFolderIcon(folder, isRoot, isRoot);
 
         var node = tree.CreateItem(parentItem, index);
         node.SetText(0, folder);
         node.SetIconMaxWidth(0, fontSize + iconRelativeSize);
-        node.SetIcon(0, icon.Texture);
         node.SetSelectable(0, false);
         node.Collapsed = !isRoot;
+
+        if (_fileIconProvider.HasLoaded)
+        {
+            var icon = _fileIconProvider.GetFolderIcon(folder, isRoot, isRoot);
+            node.SetIcon(0, icon.Texture);
+        }
 
         node.SetMeta(ItemMetadataKeys.IsFolder.ToString(), true);
         node.SetMeta(ItemMetadataKeys.FullPath.ToString(), currentPath);
@@ -340,12 +380,15 @@ public partial class FileExplorer : Control
         int index = -1
     ){
         var filePath = Path.GetFullPath(Path.Combine(currentPath, fileName));
-        var fileIcon = _fileIconProvider.GetFileIcon(fileName);
         var fileNode = tree.CreateItem(parentNode, index);
 
         fileNode.SetText(0, fileName);
         fileNode.SetIconMaxWidth(0, fontSize + iconRelativeSize);
-        fileNode.SetIcon(0, fileIcon.Texture);
+
+        if (_fileIconProvider.HasLoaded) {
+            var fileIcon = _fileIconProvider.GetFileIcon(fileName);
+            fileNode.SetIcon(0, fileIcon.Texture);
+        }
 
         fileNode.SetMeta(ItemMetadataKeys.IsFolder.ToString(), false);
         fileNode.SetMeta(ItemMetadataKeys.FullPath.ToString(), filePath);
