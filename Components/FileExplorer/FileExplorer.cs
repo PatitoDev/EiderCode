@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 public enum ItemMetadataKeys {
     IsFolder,
     Name,
-    FullPath
+    RelativePath
 }
 
 
@@ -24,11 +25,70 @@ public partial class FileExplorer : Control
     private int iconRelativeSize = 5;
     private int fontSize = 20;
 
+    private FileSystemWatcher _fileSystemWatcher = new();
+    private GitIntegration _gitIntegration;
+
+    private IReadOnlyList<FileStatus> _fileStatuses = new List<FileStatus>();
+
     public FileExplorer() {
+        _gitIntegration = new(Path.Combine(testTargetFolder, testDirPath));
+
         Task.Run(() => {
             _fileIconProvider.LoadIconTheme(IconThemeKey.Mocha);
             CallDeferred(FileExplorer.MethodName.InitFileIcons);
         });
+
+        Task.Run(async () => {
+            try {
+            _fileStatuses = await _gitIntegration
+                .GetStatus(System.Threading.CancellationToken.None);
+            CallDeferred(FileExplorer.MethodName.RenderGitStatus);
+            } catch (Exception ex) {
+                GD.Print(ex);
+            }
+        });
+    }
+
+    public void RenderGitStatus()
+    {
+        GD.Print(treeNode);
+        if (treeNode == null) return;
+
+        foreach (var status in _fileStatuses) {
+            RenderGitStatusResultOnTreeItemRecursivelly(
+                treeNode.GetRoot(),
+                status
+            );
+        }
+    }
+
+    public bool RenderGitStatusResultOnTreeItemRecursivelly(
+        TreeItem item,
+        FileStatus status
+    )
+    {
+        var relativePath = (item.GetMeta(ItemMetadataKeys.RelativePath.ToString())).AsString();
+        var fullPath = Path.Combine(testDirPath, relativePath);
+        if (fullPath == status.FullPath) {
+            if (!string.IsNullOrEmpty(status.YDisplayCode.Code)){
+                item.SetText(1, status.YDisplayCode.Code);
+            }
+            if (!string.IsNullOrEmpty(status.YDisplayCode.Color)){
+                var color = Color.FromString(status.YDisplayCode.Color, Colors.White);
+                item.SetSelectable(1, false);
+                item.SetCustomColor(1, color);
+                item.SetCustomColor(0, color);
+                item.SetTextAlignment(1, HorizontalAlignment.Center);
+            }
+            return true;
+        }
+
+        foreach (var child in item.GetChildren()){
+            var found = RenderGitStatusResultOnTreeItemRecursivelly(child, status);
+            if (found) return true;
+        }
+
+        return false;
     }
 
     public void InitFileIcons()
@@ -41,6 +101,10 @@ public partial class FileExplorer : Control
     public override void _Ready()
     {
         treeNode = GetNode<Tree>("%FileTree");
+        treeNode.SetColumnExpand(0, true);
+        treeNode.SetColumnExpandRatio(0, 1);
+        treeNode.SetColumnExpandRatio(1, 0);
+        treeNode.SetColumnCustomMinimumWidth(1, 35);
         fontSize = treeNode.GetThemeFontSize("font_size");
 
         treeNode.Theme.Changed += () => {
@@ -68,7 +132,7 @@ public partial class FileExplorer : Control
             var isFolderVariant = selectedItem.GetMeta(ItemMetadataKeys.IsFolder.ToString());
             if (isFolderVariant.AsBool()) return;
 
-            var filePath = selectedItem.GetMeta(ItemMetadataKeys.FullPath.ToString());
+            var filePath = selectedItem.GetMeta(ItemMetadataKeys.RelativePath.ToString());
             EmitSignal(SignalName.OnFileOpen, filePath.AsString());
         };
 
@@ -100,10 +164,10 @@ public partial class FileExplorer : Control
 
     public void SubscribeToDirChanges(string path)
     {
-        var watcher = new FileSystemWatcher(path);
-        watcher.IncludeSubdirectories = true;
-        watcher.EnableRaisingEvents = true;
-        watcher.NotifyFilter =
+        _fileSystemWatcher.Path = path;
+        _fileSystemWatcher.IncludeSubdirectories = true;
+        _fileSystemWatcher.EnableRaisingEvents = true;
+        _fileSystemWatcher.NotifyFilter =
              NotifyFilters.CreationTime
             //| NotifyFilters.Attributes
             | NotifyFilters.DirectoryName
@@ -114,14 +178,15 @@ public partial class FileExplorer : Control
             //| NotifyFilters.Size
             ;
 
-        watcher.Changed += (a,e) => {
+        _fileSystemWatcher.Changed += (a,e) => {
             var fullPathToWatch = Path.GetFullPath(Path.Combine(path, testTargetFolder));
             if (!e.FullPath.StartsWith(fullPathToWatch)) return;
-            //GD.Print("Changed event: ", e.FullPath);
-            //GD.Print("Changed event: ", e.ChangeType);
+            GD.Print("Changed event: ", e.Name);
+            GD.Print("Changed event: ", e.FullPath);
+            GD.Print("Changed event: ", e.ChangeType);
         };
 
-        watcher.Deleted += (a,e) => {
+        _fileSystemWatcher.Deleted += (a,e) => {
             var fullPathToWatch = Path.GetFullPath(Path.Combine(path, testTargetFolder));
             // TODO - handle delete root folder
             if (!e.FullPath.StartsWith(fullPathToWatch)) return;
@@ -134,7 +199,7 @@ public partial class FileExplorer : Control
             found.GetParent().CallDeferred(Node.MethodName.RemoveChild, found);
         };
 
-        watcher.Renamed += (_,e) => {
+        _fileSystemWatcher.Renamed += (_,e) => {
             var fullPathToWatch = Path.GetFullPath(Path.Combine(path, testTargetFolder));
             if (
                 !e.FullPath.StartsWith(fullPathToWatch) &&
@@ -159,7 +224,7 @@ public partial class FileExplorer : Control
             );
         };
 
-        watcher.Created += (_,e) => {
+        _fileSystemWatcher.Created += (_,e) => {
             if (!e.FullPath.StartsWith(path)) return;
             GD.Print("Created Path: ", e.FullPath);
             var parentFolderPath = Path.GetDirectoryName(e.FullPath);
@@ -271,7 +336,7 @@ public partial class FileExplorer : Control
     {
         var name = (node.GetMeta(ItemMetadataKeys.Name.ToString())).AsString();
         var newFullPath = Path.Combine(parentFolderPath, name);
-        node.SetMeta(ItemMetadataKeys.FullPath.ToString(), newFullPath);
+        node.SetMeta(ItemMetadataKeys.RelativePath.ToString(), newFullPath);
 
         foreach (var child in node.GetChildren())
         {
@@ -281,7 +346,7 @@ public partial class FileExplorer : Control
 
     public TreeItem? FindItemInUI(string relativePath, TreeItem node)
     {
-        var currentRelativePath = (node.GetMeta(ItemMetadataKeys.FullPath.ToString()))
+        var currentRelativePath = (node.GetMeta(ItemMetadataKeys.RelativePath.ToString()))
             .AsString();
         //GD.Print(relativePath + " ", currentRelativePath);
         if (currentRelativePath == relativePath) return node;
@@ -344,7 +409,7 @@ public partial class FileExplorer : Control
         }
 
         node.SetMeta(ItemMetadataKeys.IsFolder.ToString(), true);
-        node.SetMeta(ItemMetadataKeys.FullPath.ToString(), currentPath);
+        node.SetMeta(ItemMetadataKeys.RelativePath.ToString(), currentPath);
         node.SetMeta(ItemMetadataKeys.Name.ToString(), folder);
 
         var dir = DirAccess.Open(currentPath);
@@ -384,6 +449,7 @@ public partial class FileExplorer : Control
 
         fileNode.SetText(0, fileName);
         fileNode.SetIconMaxWidth(0, fontSize + iconRelativeSize);
+        fileNode.SetSelectable(1, false);
 
         if (_fileIconProvider.HasLoaded) {
             var fileIcon = _fileIconProvider.GetFileIcon(fileName);
@@ -391,7 +457,7 @@ public partial class FileExplorer : Control
         }
 
         fileNode.SetMeta(ItemMetadataKeys.IsFolder.ToString(), false);
-        fileNode.SetMeta(ItemMetadataKeys.FullPath.ToString(), filePath);
+        fileNode.SetMeta(ItemMetadataKeys.RelativePath.ToString(), filePath);
         fileNode.SetMeta(ItemMetadataKeys.Name.ToString(), fileName);
 
         return fileNode;

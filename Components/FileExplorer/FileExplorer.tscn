@@ -21,5 +21,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_i023m")
+columns = 2
 allow_search = false
 auto_tooltip = false

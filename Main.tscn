@@ -21,7 +21,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 split_offset = 300
-dragging_enabled = false
 dragger_visibility = 2
 
 [node name="Control2" type="Control" parent="HSplitContainer"]
