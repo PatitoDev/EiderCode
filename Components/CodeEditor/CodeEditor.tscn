@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://bpjq7ppqs66lb"]
+[gd_scene load_steps=5 format=3 uid="uid://bpjq7ppqs66lb"]
 
 [ext_resource type="Script" uid="uid://ib27dtgprgq8" path="res://Components/CodeEditor/CodeEditor.cs" id="1_400my"]
+[ext_resource type="PackedScene" uid="uid://bq36566tyvk1t" path="res://Components/CodeEditor/LineNumber/LineNumber.tscn" id="2_p74dl"]
+[ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://Theme/CodeEditorTheme.tres" id="2_xycu8"]
 
 [sub_resource type="SystemFont" id="SystemFont_400my"]
 font_names = PackedStringArray("SF Mono")
@@ -31,7 +33,7 @@ theme_override_fonts/font = SubResource("SystemFont_400my")
 caret_type = 1
 draw_tabs = true
 
-[node name="TextContent" type="ScrollContainer" parent="."]
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -40,5 +42,94 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="TextContent"]
+[node name="Content" type="HBoxContainer" parent="ScrollContainer"]
 layout_mode = 2
+
+[node name="GutterContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="LineNumber" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
+layout_mode = 2
+
+[node name="LineNumber2" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
+layout_mode = 2
+
+[node name="LineNumber3" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
+layout_mode = 2
+
+[node name="LineNumber4" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
+layout_mode = 2
+
+[node name="LineNumber5" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
+layout_mode = 2
+
+[node name="RowsContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="ScrollContainer/Content/RowsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label2" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label3" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label4" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label5" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label6" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Row2" type="HBoxContainer" parent="ScrollContainer/Content/RowsContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label2" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label3" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label4" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label5" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label6" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
