@@ -97,6 +97,7 @@ public class FileIconProvider
 
     public FileIcon GetFileIcon(string fileName)
     {
+
         if (_iconTheme == null || _iconTextureMap == null)
             throw new Exception("Icons not loaded");
 
@@ -105,17 +106,12 @@ public class FileIconProvider
             return _iconTextureMap[fileNameMatch];
         }
 
-        var matchedExtension = _iconTheme.FileExtensions
-          .Where(ext => fileName.EndsWith($".{ext.Key}"))
-          .OrderBy(ext => ext.Key.Length)
-          .Select(ext => ext.Value)
-          .FirstOrDefault();
-
-        if (
-          matchedExtension != null &&
-          _iconTextureMap.TryGetValue(matchedExtension, out var fileTypeFromExtension))
-        {
-            return fileTypeFromExtension;
+        var extension = fileName.GetExtension();
+        if (_iconTheme.FileExtensions.TryGetValue(extension, out var matchedExtension)){
+            if (_iconTextureMap.TryGetValue(matchedExtension, out var fileTypeFromExtension))
+            {
+                return fileTypeFromExtension;
+            }
         }
 
         return _iconTextureMap[_iconTheme.File];
