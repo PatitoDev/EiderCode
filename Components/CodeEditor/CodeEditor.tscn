@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://bpjq7ppqs66lb"]
+[gd_scene load_steps=6 format=3 uid="uid://bpjq7ppqs66lb"]
 
 [ext_resource type="Script" uid="uid://ib27dtgprgq8" path="res://Components/CodeEditor/CodeEditor.cs" id="1_400my"]
+[ext_resource type="PackedScene" uid="uid://dpmkkkfqc767f" path="res://Components/Cursor/Cursor.tscn" id="2_j8wae"]
 [ext_resource type="PackedScene" uid="uid://bq36566tyvk1t" path="res://Components/CodeEditor/LineNumber/LineNumber.tscn" id="2_p74dl"]
 [ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://Theme/CodeEditorTheme.tres" id="2_xycu8"]
 
@@ -15,6 +16,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+focus_mode = 2
 script = ExtResource("1_400my")
 
 [node name="EditorTextEdit" type="TextEdit" parent="."]
@@ -45,9 +47,14 @@ grow_vertical = 2
 [node name="Content" type="HBoxContainer" parent="ScrollContainer"]
 layout_mode = 2
 
+[node name="Cursor" parent="ScrollContainer/Content" instance=ExtResource("2_j8wae")]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="GutterContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="LineNumber" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
 layout_mode = 2
@@ -67,9 +74,11 @@ layout_mode = 2
 [node name="RowsContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="Row" type="HBoxContainer" parent="ScrollContainer/Content/RowsContainer"]
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="Label" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
 layout_mode = 2
@@ -103,6 +112,7 @@ text = "Hello wrold"
 
 [node name="Row2" type="HBoxContainer" parent="ScrollContainer/Content/RowsContainer"]
 layout_mode = 2
+theme_override_constants/separation = 0
 
 [node name="Label" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
 layout_mode = 2

@@ -14,9 +14,15 @@ public partial class LineNumber : MarginContainer
       Modulate = Modulate with { A = 0.7f };
     }
 
-    public void SetLineNumber(int? value = null){
+    public void SetLineNumber(int? value = null)
+    {
       Number = value;
       if (_numberLabel == null) return;
       _numberLabel.Text = Number.HasValue ? Number.ToString() : "";
+    }
+
+    public void SetIsCursorOnLine(bool value)
+    {
+      Modulate = Modulate with { A = value ? 1f : 0.7f };
     }
 }
