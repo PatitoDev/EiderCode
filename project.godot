@@ -15,6 +15,10 @@ run/main_scene="uid://b8cplu7lyibjj"
 config/features=PackedStringArray("4.4", "C#", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[debug]
+
+settings/stdout/print_fps=true
+
 [display]
 
 window/size/viewport_width=2000

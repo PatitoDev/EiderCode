@@ -20,8 +20,16 @@ public record EditorPosition
 }
 
 
+public enum ViMode
+{
+  Normal,
+  Insert,
+  Visual
+}
+
 public class CodeEngine
 {
+    public event EventHandler? OnContentChanged;
     public event EventHandler? OnCursorPositionChanged;
 
     private Tokenizer _tokenizer = new();
@@ -84,7 +92,7 @@ public class CodeEngine
     {
       var targetLineNumber = Math.Clamp(position.LineNumber, 0, Lines.Count - 1);
       var targetChar = Math.Clamp(position.CharNumber, 0,
-        Lines[targetLineNumber]!.Length - 1
+        Math.Max(Lines[targetLineNumber]!.Length - 1, 0)
       );
 
       CursorPosition = new EditorPosition(){
@@ -101,13 +109,57 @@ public class CodeEngine
         { Key.H, new() { CharNumber = -1, LineNumber = 0 } },
     };
 
+    private Dictionary<Key, string> _insertMap = new(){
+        { Key.Enter, "\\n" },
+        { Key.Space, " " },
+        { Key.Tab, "  " },
+    };
+
+    public ViMode CurrentMode = ViMode.Normal;
+
     public void HandleKeyPress(Key key)
     {
-      if (_motionMap.TryGetValue(key, out var v)) {
-        MoveCursorPosition(new(){
-          CharNumber = CursorPosition.CharNumber + v.CharNumber,
-          LineNumber = CursorPosition.LineNumber + v.LineNumber
-        });
+      if (key == Key.Escape) {
+        CurrentMode = ViMode.Normal;
+        return;
       }
+
+      if (key == Key.I && CurrentMode == ViMode.Normal) {
+        CurrentMode = ViMode.Insert;
+        return;
+      }
+
+      if (CurrentMode == ViMode.Normal) {
+        if (_motionMap.TryGetValue(key, out var v)) {
+          MoveCursorPosition(new(){
+            CharNumber = CursorPosition.CharNumber + v.CharNumber,
+            LineNumber = CursorPosition.LineNumber + v.LineNumber
+          });
+        }
+      }
+
+      if (CurrentMode == ViMode.Insert) {
+        GD.Print(key);
+        GD.Print(OS.GetKeycodeString(key));
+
+        MoveCursorPosition(new(){
+            CharNumber = CursorPosition.CharNumber + 1,
+            LineNumber = CursorPosition.LineNumber
+        });
+        AddTextToCursor(OS.GetKeycodeString(key));
+      }
+    }
+
+    public void AddTextToCursor(string text)
+    {
+      Lines[CursorPosition.LineNumber] = Lines[CursorPosition.LineNumber].Insert(CursorPosition.CharNumber, text);
+      UpdateTextFromLinesBuffer();
+    }
+
+    public void UpdateTextFromLinesBuffer()
+    {
+      var newText = string.Join("\n", Lines);
+      Content = newText;
+      OnContentChanged?.Invoke(this, new EventArgs());
     }
 }

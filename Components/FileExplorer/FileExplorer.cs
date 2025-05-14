@@ -95,7 +95,7 @@ public partial class FileExplorer : Control
 
         RenderTreeItemFolder(root, treeNode, null);
         t.Stop();
-        GD.Print(t.ElapsedMilliseconds);
+        GD.Print("Loaded tree in: ",t.ElapsedMilliseconds);
 
         AddTreeClickEventListener();
     }
@@ -239,7 +239,6 @@ public partial class FileExplorer : Control
     }
 
     public void RenderTreeItemFolder(FileSystemItem fsItem, Tree tree, TreeItem? parentItem, int index = -1, int depth = 0) {
-        var MAX_DEPTH = 5;
         var node = tree.CreateItem(parentItem, index);
         node.SetText(0, fsItem.Name);
         node.SetIconMaxWidth(0, fontSize + iconRelativeSize);
@@ -249,8 +248,6 @@ public partial class FileExplorer : Control
         node.SetMeta(ItemMetadataKeys.Name.ToString(), fsItem.Name);
 
         if (fsItem.IsFolder){
-            // TODO - temp solution for big nested fs
-            if (depth > MAX_DEPTH) return;
             node.Collapsed = !fsItem.IsRoot;
             node.SetSelectable(0, false);
         } else {

@@ -1,8 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://bpjq7ppqs66lb"]
+[gd_scene load_steps=5 format=3 uid="uid://bpjq7ppqs66lb"]
 
 [ext_resource type="Script" uid="uid://ib27dtgprgq8" path="res://Components/CodeEditor/CodeEditor.cs" id="1_400my"]
 [ext_resource type="PackedScene" uid="uid://dpmkkkfqc767f" path="res://Components/Cursor/Cursor.tscn" id="2_j8wae"]
-[ext_resource type="PackedScene" uid="uid://bq36566tyvk1t" path="res://Components/CodeEditor/LineNumber/LineNumber.tscn" id="2_p74dl"]
 [ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://Theme/CodeEditorTheme.tres" id="2_xycu8"]
 
 [sub_resource type="SystemFont" id="SystemFont_400my"]
@@ -55,21 +54,6 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 0
-
-[node name="LineNumber" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
-layout_mode = 2
-
-[node name="LineNumber2" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
-layout_mode = 2
-
-[node name="LineNumber3" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
-layout_mode = 2
-
-[node name="LineNumber4" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
-layout_mode = 2
-
-[node name="LineNumber5" parent="ScrollContainer/Content/GutterContainer" instance=ExtResource("2_p74dl")]
-layout_mode = 2
 
 [node name="RowsContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
 unique_name_in_owner = true

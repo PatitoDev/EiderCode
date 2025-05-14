@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://bpypqmtabddwg"]
+
+[ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://Theme/CodeEditorTheme.tres" id="1_1fgm8"]
+[ext_resource type="Script" uid="uid://8cxacwga70cf" path="res://Components/CodeEditor/TokenLabelGD/token_label_gd.gd" id="1_jl4bu"]
+
+[node name="TokenLabelGd" type="Label"]
+theme = ExtResource("1_1fgm8")
+script = ExtResource("1_jl4bu")

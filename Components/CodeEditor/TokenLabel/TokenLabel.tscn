@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://c8twplky8hheg"]
+[gd_scene load_steps=3 format=3 uid="uid://buyrejx7ssqx7"]
 
 [ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://Theme/CodeEditorTheme.tres" id="1_d0td4"]
 [ext_resource type="Script" uid="uid://by1gn0wemwy3r" path="res://Components/CodeEditor/TokenLabel/TokenLabel.cs" id="2_uaojq"]

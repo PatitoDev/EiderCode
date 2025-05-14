@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 
@@ -18,6 +19,7 @@ public partial class CodeEditor : Control
 
     private PackedScene _LineNumeberScene = GD.Load<PackedScene>("uid://bq36566tyvk1t");
     private PackedScene _TokenLabelScene = GD.Load<PackedScene>("uid://c8twplky8hheg");
+    private PackedScene _TokenLabelSceneGD = GD.Load<PackedScene>("uid://bpypqmtabddwg");
 
     private CodeEngine? _codeEngine;
 
@@ -43,6 +45,8 @@ public partial class CodeEditor : Control
 
         _scrollContainer.ScrollVertical = 0;
 
+        var s = new Stopwatch();
+        s.Start();
         using var file = Godot.FileAccess.Open(
           filePath,
           Godot.FileAccess.ModeFlags.Read
@@ -52,6 +56,17 @@ public partial class CodeEditor : Control
 
         _codeEngine = new CodeEngine(filePath, content);
         RenderCodeTokens(_codeEngine.GetTokens());
+        s.Stop();
+        GD.Print("Loaded and rendered file in: ", s.ElapsedMilliseconds);
+
+        _codeEngine.OnContentChanged += (o, e) => {
+            var s2 = new Stopwatch();
+            s2.Start();
+            RenderCodeTokens(_codeEngine.GetTokens());
+            s2.Stop();
+            GD.Print("Reloaded file in: ", s.ElapsedMilliseconds);
+        };
+
         _codeEngine.OnCursorPositionChanged += (o, e) => {
             var lineCount = _codeEngine.LineCount;
             RenderLineNumbers(lineCount);
@@ -85,17 +100,19 @@ public partial class CodeEditor : Control
         var lineCount = 0;
         foreach (var child in children)
         {
-            if (child is not LineNumber) continue;
+            if (child is not MarginContainer) continue;
             if (lineCount < amount)
             {
                 var relNumber = Math.Abs(lineCount - cursorLinePosition);
-                ((LineNumber)child).SetLineNumber(relNumber);
-                ((LineNumber)child).SetIsCursorOnLine(relNumber == 0);
+                LineNumberBuilder.UpdateNumber((MarginContainer) child, relNumber, relNumber == 0);
+                //((LineNumber)child).SetLineNumber(relNumber);
+                //((LineNumber)child).SetIsCursorOnLine(relNumber == 0);
             }
             else
             {
-                ((LineNumber)child).SetLineNumber();
-                ((LineNumber)child).SetIsCursorOnLine(false);
+                LineNumberBuilder.UpdateNumber((MarginContainer) child, null, false);
+                //((LineNumber)child).SetLineNumber();
+                //((LineNumber)child).SetIsCursorOnLine(false);
             }
 
             lineCount += 1;
@@ -108,20 +125,23 @@ public partial class CodeEditor : Control
 
         for (var i = 0; i < amountToCreate; i++)
         {
-            var lineNumber = _LineNumeberScene.Instantiate<LineNumber>();
-            _gutterContainer.AddChild(lineNumber);
+            //var lineNumber = _LineNumeberScene.Instantiate<LineNumber>();
 
+            int? val = null;
             if (lineCount < amount)
             {
                 var relNumber = Math.Abs(lineCount - cursorLinePosition);
-                lineNumber.SetLineNumber(relNumber);
-                lineNumber.SetIsCursorOnLine(relNumber == 0);
+                //lineNumber.SetLineNumber(relNumber);
+                //lineNumber.SetIsCursorOnLine(relNumber == 0);
+                val = relNumber;
             }
             else
             {
-                lineNumber.SetLineNumber();
-                lineNumber.SetIsCursorOnLine(false);
+                //lineNumber.SetLineNumber();
+                //lineNumber.SetIsCursorOnLine(false);
             }
+            var lineNumber = LineNumberBuilder.Create(val, _godotEditorTheme!, val == 0);
+            _gutterContainer.AddChild(lineNumber);
 
             lineCount += 1;
         }
@@ -149,9 +169,9 @@ public partial class CodeEditor : Control
 
             foreach (var token in line.Tokens)
             {
-                var label = _createLabel(token);
-                label.StartChar = charCount;
-                label.LineNumber = lineCount;
+                var label = _createLabel(token, lineCount, charCount);
+                //label.StartChar = charCount;
+                //label.LineNumber = lineCount;
                 lineContainer.AddChild(label);
                 charCount += token.Content.Length;
             }
@@ -172,10 +192,16 @@ public partial class CodeEditor : Control
         };
     }
 
-    private TokenLabel _createLabel(CodeToken token)
+    private Node _createLabel(CodeToken token, int lineNumber, int startChar)
     {
-        var label = _TokenLabelScene.Instantiate<TokenLabel>();
-        label.SetToken(token);
+        var label = TokenLabelBuilder.Create(token, _godotEditorTheme!, lineNumber, startChar);
+        //var label = _TokenLabelScene.Instantiate<TokenLabel>();
+        //var label = new Label();
+        //label.Theme = _godotEditorTheme;
+        //var label = (Label)_TokenLabelSceneGD.Instantiate();
+        //label.Call("setLabel", token.Content);
+        //label.SetToken(token);
+        //label.Text = token.Content;
         label.MouseFilter = MouseFilterEnum.Stop;
 
         label.GuiInput += (e) => {
@@ -197,9 +223,11 @@ public partial class CodeEditor : Control
                 var targetCursorPosition = label.GlobalPosition + bounds.Position;
                 if (_cursor == null || _codeEngine == null) return;
 
+                var startChar = TokenLabelBuilder.GetStartChar(label);
+                var lineNumber = TokenLabelBuilder.GetLineNumber(label);
                 var editorPosition = new EditorPosition(){
-                    CharNumber = label.StartChar + i,
-                    LineNumber = label.LineNumber,
+                    CharNumber = startChar + i,
+                    LineNumber = lineNumber,
                 };
 
                 _codeEngine.MoveCursorPosition(editorPosition);
@@ -221,7 +249,7 @@ public partial class CodeEditor : Control
             ((InputEventKey)@event).IsPressed()
         )
         {
-            var key = ((InputEventKey)@event).Keycode;
+            var key = ((InputEventKey)@event).KeyLabel;
             _codeEngine?.HandleKeyPress(key);
         }
     }
@@ -230,28 +258,29 @@ public partial class CodeEditor : Control
     {
         if (_textContentNode == null) return null;
 
-        var row = _textContentNode.GetChild(position.LineNumber);
+        var row = _textContentNode.GetChild<HBoxContainer>(position.LineNumber);
         var tokens = row.GetChildren();
 
         var charCount = 0;
         foreach (var token in tokens)
         {
-            var tokenLabel = (TokenLabel)token;
-            charCount += tokenLabel.StartChar;
+            var tokenLabel = (Label)token;
+            var startChar = TokenLabelBuilder.GetStartChar(tokenLabel);
+            charCount += startChar;
             var contentLength = tokenLabel.Text.Length;
 
             if (
-                position.CharNumber >= tokenLabel.StartChar &&
-                position.CharNumber < tokenLabel.StartChar + contentLength
+                position.CharNumber >= startChar &&
+                position.CharNumber < startChar + contentLength
             ){
                 GD.Print("found char in conversion: ", tokenLabel.Text);
 
-                var bounds = tokenLabel.GetCharacterBounds(position.CharNumber - tokenLabel.StartChar);
+                var bounds = tokenLabel.GetCharacterBounds(position.CharNumber - startChar);
                 var targetCursorPosition = tokenLabel.GlobalPosition + bounds.Position;
                 return targetCursorPosition;
             }
         }
 
-        return null;
+        return row.GlobalPosition;
     }
 }
