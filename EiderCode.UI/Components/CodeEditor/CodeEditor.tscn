@@ -1,0 +1,129 @@
+[gd_scene load_steps=5 format=3 uid="uid://bpjq7ppqs66lb"]
+
+[ext_resource type="Script" uid="uid://ib27dtgprgq8" path="res://EiderCode.UI/Components/CodeEditor/CodeEditor.cs" id="1_400my"]
+[ext_resource type="PackedScene" uid="uid://dpmkkkfqc767f" path="res://EiderCode.UI/Components/Cursor/Cursor.tscn" id="2_j8wae"]
+[ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://EiderCode.UI/Theme/CodeEditorTheme.tres" id="2_xycu8"]
+
+[sub_resource type="SystemFont" id="SystemFont_400my"]
+font_names = PackedStringArray("SF Mono")
+subpixel_positioning = 0
+
+[node name="CodeEditor" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 2
+script = ExtResource("1_400my")
+
+[node name="EditorTextEdit" type="TextEdit" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/caret_background_color = Color(0.886275, 0, 0, 1)
+theme_override_colors/caret_color = Color(0.868601, 0.133832, 0.337113, 1)
+theme_override_constants/caret_width = 3
+theme_override_fonts/font = SubResource("SystemFont_400my")
+caret_type = 1
+draw_tabs = true
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Content" type="HBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+
+[node name="Cursor" parent="ScrollContainer/Content" instance=ExtResource("2_j8wae")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="GutterContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="RowsContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Row" type="HBoxContainer" parent="ScrollContainer/Content/RowsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label2" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label3" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label4" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label5" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label6" type="Label" parent="ScrollContainer/Content/RowsContainer/Row"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Row2" type="HBoxContainer" parent="ScrollContainer/Content/RowsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label2" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label3" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label4" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label5" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"
+
+[node name="Label6" type="Label" parent="ScrollContainer/Content/RowsContainer/Row2"]
+layout_mode = 2
+theme = ExtResource("2_xycu8")
+text = "Hello wrold"

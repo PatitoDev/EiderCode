@@ -1,0 +1,51 @@
+[gd_scene load_steps=2 format=3 uid="uid://c0fr1d734usxr"]
+
+[ext_resource type="Script" uid="uid://b1eqc8wc8y86s" path="res://EiderCode.UI/Components/Terminal/Terminal.cs" id="1_32j8s"]
+
+[node name="Terminal" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_32j8s")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.040089, 0.0656938, 0.0842463, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VSplitContainer" type="VSplitContainer" parent="MarginContainer"]
+layout_mode = 2
+split_offset = 50
+
+[node name="TextEdit" type="TextEdit" parent="MarginContainer/VSplitContainer"]
+layout_mode = 2
+text = "sdasdad"
+
+[node name="TerminalLabel" type="RichTextLabel" parent="MarginContainer/VSplitContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 2
+bbcode_enabled = true
+text = "asdasdasds"
+scroll_following = true
+context_menu_enabled = true
+selection_enabled = true

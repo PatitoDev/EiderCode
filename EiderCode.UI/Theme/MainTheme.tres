@@ -1,0 +1,71 @@
+[gd_resource type="Theme" load_steps=12 format=3 uid="uid://cjhxad3glt7at"]
+
+[ext_resource type="Texture2D" uid="uid://dmj0phpd2n4ck" path="res://EiderCode.UI/Icons/UI/TriangleDown.svg" id="1_3kgdn"]
+[ext_resource type="Texture2D" uid="uid://bat48y1dfgxxn" path="res://EiderCode.UI/Icons/UI/TriangleRight.svg" id="2_qu2c6"]
+
+[sub_resource type="SystemFont" id="SystemFont_htk7t"]
+font_names = PackedStringArray("SF Mono")
+
+[sub_resource type="SystemFont" id="SystemFont_jme7d"]
+font_names = PackedStringArray("Segoe UI")
+font_weight = 500
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_21wje"]
+bg_color = Color(0.392157, 0.262745, 0.439216, 0.0901961)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jme7d"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+bg_color = Color(0.0705882, 0.0705882, 0.109804, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_htk7t"]
+bg_color = Color(0.392157, 0.262745, 0.439216, 0.278431)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_htk7t"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ti8mq"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3kgdn"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.6, 0.6, 0.6, 0)
+expand_margin_left = 5.0
+expand_margin_top = 5.0
+expand_margin_right = 5.0
+expand_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fccoc"]
+content_margin_left = 5.0
+content_margin_top = 5.0
+content_margin_right = 5.0
+content_margin_bottom = 5.0
+bg_color = Color(0.839937, 3.56168e-06, 0.507288, 1)
+
+[resource]
+Label/fonts/font = SubResource("SystemFont_htk7t")
+Tree/colors/font_color = Color(1, 1, 1, 0.729412)
+Tree/colors/font_selected_color = Color(1, 1, 1, 1)
+Tree/constants/draw_guides = 0
+Tree/constants/h_separation = 8
+Tree/constants/item_margin = 18
+Tree/constants/scrollbar_margin_bottom = 20
+Tree/constants/v_separation = 1
+Tree/font_sizes/font_size = 20
+Tree/fonts/font = SubResource("SystemFont_jme7d")
+Tree/icons/arrow = ExtResource("1_3kgdn")
+Tree/icons/arrow_collapsed = ExtResource("2_qu2c6")
+Tree/styles/hovered = SubResource("StyleBoxFlat_21wje")
+Tree/styles/panel = SubResource("StyleBoxFlat_jme7d")
+Tree/styles/selected_focus = SubResource("StyleBoxFlat_htk7t")
+VScrollBar/styles/grabber = SubResource("StyleBoxEmpty_htk7t")
+VScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_ti8mq")
+VScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_ti8mq")
+VScrollBar/styles/scroll = SubResource("StyleBoxFlat_3kgdn")
+VScrollBar/styles/scroll_focus = SubResource("StyleBoxFlat_fccoc")
