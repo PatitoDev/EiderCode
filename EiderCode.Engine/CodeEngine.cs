@@ -5,6 +5,7 @@ using Godot;
 using EiderCode.Engine.Models;
 using EiderCode.Engine.TokenGeneration;
 
+using System.Windows.Input;
 
 namespace EiderCode.Engine;
 
@@ -23,6 +24,8 @@ public class CodeEngine
     public int LineCount { get; private set; }
     public string FilePath { get; private set; }
 
+    private ViStack viStack;
+
     public CodeEngine(string filePath, string content)
     {
         FilePath = filePath;
@@ -34,6 +37,7 @@ public class CodeEngine
             LineNumber = 0,
             CharNumber = 0
         };
+        viStack = new();
     }
 
     public Document GetTokens()
@@ -78,6 +82,7 @@ public class CodeEngine
         Math.Max(Lines[targetLineNumber]!.Length - 1, 0)
       );
 
+      GD.Print("new line number", targetLineNumber);
       CursorPosition = new EditorPosition(){
         CharNumber = targetChar,
         LineNumber = targetLineNumber
@@ -100,42 +105,142 @@ public class CodeEngine
 
     public ViMode CurrentMode = ViMode.Normal;
 
-    public void HandleKeyPress(Key key)
+    public void HandleKeyPress(InputKey key)
     {
-      if (key == Key.Escape) {
+      GD.Print("Code: ", key.KeyCode);
+      GD.Print("Unicode: ", key.Unicode);
+      GD.Print("IsShifted: ", key.IsShiftPressed);
+      GD.Print("IsControlPressed: ", key.IsControlPressed);
+
+      if (key.KeyCode == Key.Escape) {
         CurrentMode = ViMode.Normal;
+        // clear action stack
+        OnModeChange?.Invoke(this, EventArgs.Empty);
+        viStack = new();
         return;
       }
 
-      if (key == Key.I && CurrentMode == ViMode.Normal) {
-        CurrentMode = ViMode.Insert;
-        return;
+      switch (CurrentMode) {
+        case ViMode.Normal:
+          HandleNormalMode(key);
+          return;
+        case ViMode.Insert:
+          HandleInsertMode(key);
+          return;
       }
+    }
 
-      if (CurrentMode == ViMode.Normal) {
-        if (_motionMap.TryGetValue(key, out var v)) {
-          MoveCursorPosition(new(){
-            CharNumber = CursorPosition.CharNumber + v.CharNumber,
-            LineNumber = CursorPosition.LineNumber + v.LineNumber
-          });
+    private void HandleNormalMode(InputKey key)
+    {
+      var keyChar = key.ToString()[0];
+      // Motion without an action
+      var motion = MotionBuilder.HandleMotion(
+        key,
+        Lines,
+        CursorPosition
+      );
+
+      // handle stack
+      if (motion != null) {
+        // motion is the last action so execute;
+        if (
+          viStack.CurrentAction == null
+        ) {
+          MoveCursorPosition(motion.End);
+          return;
+        } else {
+          viStack.Motion = motion;
+
+          var result = ActionBuilder.ExectueAction(
+            CursorPosition,
+            viStack,
+            CurrentMode,
+            Lines
+          );
+          HandleExecuteResult(result);
+          return;
         }
+        // else when there is an action
       }
 
-      if (CurrentMode == ViMode.Insert) {
-        GD.Print(key);
-        GD.Print(OS.GetKeycodeString(key));
+      var action = ActionBuilder.GetAction(key, viStack);
+      if (action.Action != null) {
+        viStack.CurrentAction = action.Action;
 
+        // add action to stack or execute it if ready
+        if (action.IsReadyToExecute) {
+          // ready to execute so do action
+          var result = ActionBuilder.ExectueAction(
+            CursorPosition,
+            viStack,
+            CurrentMode,
+            Lines
+          );
+          HandleExecuteResult(result);
+          return;
+        }
+        viStack.CurrentAction = action.Action;
+        return;
+      }
+
+      // reset stack
+      viStack = new();
+
+      if (_motionMap.TryGetValue(key.KeyCode, out var v)) {
         MoveCursorPosition(new(){
-            CharNumber = CursorPosition.CharNumber + 1,
-            LineNumber = CursorPosition.LineNumber
+          CharNumber = CursorPosition.CharNumber + v.CharNumber,
+          LineNumber = CursorPosition.LineNumber + v.LineNumber
         });
-        AddTextToCursor(OS.GetKeycodeString(key));
       }
+    }
+
+    private void HandleInsertMode(InputKey key)
+    {
+      if (key.IsControlPressed && key.KeyCode == Key.V)
+      {
+        if (
+          DisplayServer.ClipboardHasImage() ||
+          !DisplayServer.ClipboardHas()
+        ){
+          return;
+        }
+
+        var textFromClipboard = DisplayServer.ClipboardGet();
+        // TODO - move to end
+        AddTextToCursor(textFromClipboard);
+        return;
+      }
+
+      if (key.Unicode == null) return;
+      var printableChar = Convert.ToChar(key.Unicode);
+      AddCharToCursor(printableChar);
+      MoveCursorPosition(new(){
+          CharNumber = CursorPosition.CharNumber + 1,
+          LineNumber = CursorPosition.LineNumber
+      });
+    }
+
+    public void AddCharToCursor(char text)
+    {
+      Lines[CursorPosition.LineNumber] = Lines[CursorPosition.LineNumber]
+        .Insert(CursorPosition.CharNumber, text.ToString());
+      UpdateTextFromLinesBuffer();
     }
 
     public void AddTextToCursor(string text)
     {
-      Lines[CursorPosition.LineNumber] = Lines[CursorPosition.LineNumber].Insert(CursorPosition.CharNumber, text);
+      var linesToAdd = text.Split("\n");
+
+      var firstLine = linesToAdd.FirstOrDefault();
+      if (firstLine != null) {
+        Lines[CursorPosition.LineNumber] = Lines[CursorPosition.LineNumber].Insert(CursorPosition.CharNumber, firstLine);
+      }
+
+      foreach (var line in linesToAdd.Skip(1))
+      {
+        Lines.Insert(CursorPosition.LineNumber + 1, line);
+      }
+
       UpdateTextFromLinesBuffer();
     }
 
@@ -144,5 +249,26 @@ public class CodeEngine
       var newText = string.Join("\n", Lines);
       Content = newText;
       OnContentChanged?.Invoke(this, new EventArgs());
+    }
+
+    private void HandleExecuteResult(ExecuteResult result)
+    {
+      if (result.ChangedMode.HasValue)
+      {
+        CurrentMode = result.ChangedMode.Value;
+        OnModeChange?.Invoke(this, EventArgs.Empty);
+      }
+
+      if (result.NewCursorPosition != null){
+        CursorPosition = result.NewCursorPosition;
+        OnCursorPositionChanged?.Invoke(this, EventArgs.Empty);
+      }
+
+      if (result.Lines != null) {
+        Lines = result.Lines;
+        UpdateTextFromLinesBuffer();
+      }
+
+      viStack = new();
     }
 }

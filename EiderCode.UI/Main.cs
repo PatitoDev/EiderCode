@@ -10,6 +10,9 @@ public partial class Main : Control
     public override void _Ready()
     {
         base._Ready();
+
+        // handle combination keys like accents
+        GetWindow().SetImeActive(true);
         var codeEditor = GetNode<CodeEditor>("%CodeEditor");
 
         explorer = GetNode<FileExplorer>("%FileExplorer");

@@ -3,10 +3,8 @@ using EiderCode.Engine;
 using EiderCode.Engine.TokenGeneration;
 using Godot;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text.Json;
 
 namespace EiderCode.UI;
 
@@ -14,7 +12,6 @@ public partial class CodeEditor : Control
 {
     private Tokenizer _tokenizer = new();
 
-    private TextEdit? _textEditNode;
     private VBoxContainer? _textContentNode;
     private VBoxContainer? _gutterContainer;
     private ScrollContainer? _scrollContainer;
@@ -29,7 +26,6 @@ public partial class CodeEditor : Control
 
     public override void _Ready()
     {
-        _textEditNode = GetNode<TextEdit>("%EditorTextEdit");
         _textContentNode = GetNode<VBoxContainer>("%RowsContainer");
         _gutterContainer = GetNode<VBoxContainer>("%GutterContainer");
         _scrollContainer = GetNode<ScrollContainer>("%ScrollContainer");
@@ -42,10 +38,7 @@ public partial class CodeEditor : Control
 
     public void OpenFile(string filePath)
     {
-        if (
-            _textEditNode == null ||
-            _scrollContainer == null
-        ) return;
+        if (_scrollContainer == null) return;
 
         _scrollContainer.ScrollVertical = 0;
 
@@ -56,7 +49,6 @@ public partial class CodeEditor : Control
           Godot.FileAccess.ModeFlags.Read
         );
         var content = file.GetAsText();
-        _textEditNode.Text = content;
 
         _codeEngine = new CodeEngine(filePath, content);
         RenderCodeTokens(_codeEngine.GetTokens());
@@ -72,12 +64,18 @@ public partial class CodeEditor : Control
         };
 
         _codeEngine.OnCursorPositionChanged += (o, e) => {
-            var lineCount = _codeEngine.LineCount;
-            RenderLineNumbers(lineCount);
-            var newPostion = ConvertEditorPosition(_codeEngine.CursorPosition);
-            if (newPostion != null) {
-                _cursor?.MoveTo(newPostion.Value);
-            }
+          CallDeferred(CodeEditor.MethodName.UpdateCursorPosition);
+          //  UpdateCursorPosition();
+        };
+
+        _codeEngine.OnModeChange += (o, e) => {
+            if (_cursor == null) return;
+
+            _cursor.SetCursorType(
+                _codeEngine.CurrentMode == ViMode.Insert ?
+                 CursorType.Line :
+                 CursorType.Block
+            );
         };
     }
 
@@ -206,7 +204,8 @@ public partial class CodeEditor : Control
         //label.Call("setLabel", token.Content);
         //label.SetToken(token);
         //label.Text = token.Content;
-        label.MouseFilter = MouseFilterEnum.Stop;
+
+        label.MouseFilter = MouseFilterEnum.Pass;
 
         label.GuiInput += (e) => {
             if (e is not InputEventMouseButton) return;
@@ -237,7 +236,7 @@ public partial class CodeEditor : Control
                 _codeEngine.MoveCursorPosition(editorPosition);
 
                 //_cursor.MoveTo(targetCursorPosition);
-                _cursor.SetBlockSize(bounds.Size);
+                //_cursor.SetBlockSize(bounds.Size);
                 return;
             }
         };
@@ -253,12 +252,33 @@ public partial class CodeEditor : Control
             ((InputEventKey)@event).IsPressed()
         )
         {
-            var key = ((InputEventKey)@event).KeyLabel;
-            _codeEngine?.HandleKeyPress(key);
+            var inputEventKey = ((InputEventKey)@event);
+
+            _codeEngine?.HandleKeyPress(new(){
+                IsShiftPressed = inputEventKey.ShiftPressed,
+                IsControlPressed = inputEventKey.CtrlPressed,
+                KeyCode = inputEventKey.PhysicalKeycode,
+                Unicode = inputEventKey.Unicode == 0 ? null : inputEventKey.Unicode
+            });
         }
     }
 
-    public Vector2? ConvertEditorPosition(EditorPosition position)
+    public void UpdateCursorPosition()
+    {
+        if (_codeEngine == null) return;
+
+        var lineCount = _codeEngine.LineCount;
+        RenderLineNumbers(lineCount);
+
+        var newPostion = ConvertEditorPosition(_codeEngine.CursorPosition);
+        if (newPostion != null) {
+            _cursor?.MoveTo(newPostion.Value.position);
+            _cursor?.SetChar(newPostion.Value.character);
+        }
+
+    }
+
+    public (Vector2 position, char character)? ConvertEditorPosition(EditorPosition position)
     {
         if (_textContentNode == null) return null;
 
@@ -269,22 +289,25 @@ public partial class CodeEditor : Control
         foreach (var token in tokens)
         {
             var tokenLabel = (Label)token;
-            var startChar = TokenLabelBuilder.GetStartChar(tokenLabel);
-            charCount += startChar;
+            //var startChar = TokenLabelBuilder.GetStartChar(tokenLabel);
+            //charCount += tokenLabel.Text.Length;
             var contentLength = tokenLabel.Text.Length;
 
             if (
-                position.CharNumber >= startChar &&
-                position.CharNumber < startChar + contentLength
+                position.CharNumber >= charCount &&
+                position.CharNumber < charCount + contentLength
             ){
                 GD.Print("found char in conversion: ", tokenLabel.Text);
 
-                var bounds = tokenLabel.GetCharacterBounds(position.CharNumber - startChar);
+                var bounds = tokenLabel.GetCharacterBounds(position.CharNumber - charCount);
                 var targetCursorPosition = tokenLabel.GlobalPosition + bounds.Position;
-                return targetCursorPosition;
+                return (targetCursorPosition, tokenLabel.Text[position.CharNumber - charCount]);
             }
+            charCount += tokenLabel.Text.Length;
         }
 
-        return row.GlobalPosition;
+        // TODO - approximate position
+        // use text server to get char position
+        return null;
     }
 }
