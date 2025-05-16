@@ -108,6 +108,13 @@ layout_mode = 2
 theme = ExtResource("2_xycu8")
 text = "Hello wrold"
 
-[node name="Cursor" parent="ScrollContainer/Content" instance=ExtResource("2_j8wae")]
+[node name="Control" type="Control" parent="ScrollContainer/Content"]
+layout_mode = 2
+
+[node name="Cursor" parent="ScrollContainer/Content/Control" instance=ExtResource("2_j8wae")]
 unique_name_in_owner = true
 layout_mode = 2
+offset_left = 200.0
+offset_top = -576.0
+offset_right = 200.0
+offset_bottom = -462.0

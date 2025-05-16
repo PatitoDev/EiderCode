@@ -53,6 +53,9 @@ public partial class CodeEditor : Control
         s.Stop();
         GD.Print("Loaded and rendered file in: ", s.ElapsedMilliseconds);
 
+        UpdateCursorPosition();
+        GrabFocus();
+
         _codeEngine.OnContentChanged += (o, e) => {
             var s2 = new Stopwatch();
             s2.Start();
@@ -221,10 +224,19 @@ public partial class CodeEditor : Control
         base._GuiInput(@event);
 
         if (
+            @event is InputEventMouse &&
+            DisplayServer.MouseGetMode() != DisplayServer.MouseMode.Visible
+        )
+        {
+            DisplayServer.MouseSetMode(DisplayServer.MouseMode.Visible);
+        }
+
+        if (
             @event is InputEventKey &&
             ((InputEventKey)@event).IsPressed()
         )
         {
+            DisplayServer.MouseSetMode(DisplayServer.MouseMode.Hidden);
             var inputEventKey = ((InputEventKey)@event);
 
             _codeEngine?.HandleKeyPress(new(){
