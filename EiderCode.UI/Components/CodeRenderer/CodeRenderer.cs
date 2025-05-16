@@ -1,6 +1,7 @@
 using EiderCode.Engine;
 using EiderCode.Engine.Models;
 using Godot;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,7 +29,7 @@ public partial class CodeRenderer : Control
             if (!_charSize.HasValue) return;
 
             if (cancellation.IsCancellationRequested) return;
-            RenderLine(line, new Vector2(0, (_charSize.Value.Y * (line.Index + 1))), cancellation);
+            RenderLine(line, cancellation);
             CallDeferred(CodeRenderer.MethodName.UpdateContainerSize);
         });
     }
@@ -50,11 +51,28 @@ public partial class CodeRenderer : Control
         RenderingServer.CanvasItemClear(canvasIdToDelete);
     }
 
-    private void RenderLine(DocumentLine line, Vector2 drawingCursor, CancellationToken cancellationToken)
+    public void RenderDocument(CancellationToken cancellationToken)
+    {
+        if (_codeEngine == null) return;
+
+        var tokens = _codeEngine.GetTokens();
+        ResetCanvas(_canvasId);
+        var tasks = tokens.Lines
+        .Select(l => Task.Run(() => {
+            if (cancellationToken.IsCancellationRequested) return;
+            RenderLine(l, cancellationToken);
+        }))
+        .ToList();
+    }
+
+    private void RenderLine(DocumentLine line, CancellationToken cancellationToken)
     {
         if (_textServer == null) return;
         if (_font == null) return;
         if (!_fontSize.HasValue) return;
+        if (!_charSize.HasValue) return;
+
+        var position = new Vector2(0, (_charSize.Value.Y * (line.Index + 1)));
 
         var textId = _textServer.CreateShapedText(
           TextServer.Direction.Ltr,
@@ -63,8 +81,6 @@ public partial class CodeRenderer : Control
             foreach (var token in line.Tokens)
             {
                 _textServer.ShapedTextAddString(textId, token.Content, _font.GetRids(), _fontSize.Value);
-
-                var tokenPosition = drawingCursor;
 
                 // TODO - cache colors
                 // TODO - get fg default color from theme
@@ -76,10 +92,10 @@ public partial class CodeRenderer : Control
                   _textServer.FreeRid(textId);
                   return;
                 }
-                _textServer.ShapedTextDraw(textId, _canvasId, tokenPosition, -1, -1, tokenColor);
+                _textServer.ShapedTextDraw(textId, _canvasId, position, -1, -1, tokenColor);
 
                 var textSize = _textServer.ShapedTextGetSize(textId);
-                drawingCursor = new Vector2(drawingCursor.X + textSize.X, drawingCursor.Y);
+                position = new Vector2(position.X + textSize.X, position.Y);
 
                 _textServer.ShapedTextClear(textId);
             }

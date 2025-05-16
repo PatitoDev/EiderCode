@@ -10,13 +10,11 @@ public enum CursorType {
 
 public partial class Cursor : Panel
 {
-  private Label? label;
+  public Vector2 BlockSize;
 
   public override void _Ready()
   {
-    label = GetNode<Label>("%Label");
-    var bounds = label.GetCharacterBounds(0);
-    Size = new Vector2(20, 35);
+    Size = BlockSize;
   }
 
   private CursorType _cursorType;
@@ -36,34 +34,11 @@ public partial class Cursor : Panel
     t.SetEase(Tween.EaseType.InOut);
     _cursorType = cursorType;
     if (cursorType == CursorType.Line) {
-      var bounds = label!.GetCharacterBounds(0);
-      label!.Visible = false;
       t.TweenProperty(this, "size:x", 3, 0.10);
-      t.TweenProperty(this, "size:y", bounds.Size.Y, 0.10);
+      t.TweenProperty(this, "size:y", BlockSize.Y, 0.10);
     } else {
-      label!.Visible = true;
-      var bounds = label.GetCharacterBounds(0);
-      t.TweenProperty(this, "size:x", bounds.Size.X, 0.10);
-      t.TweenProperty(this, "size:y", bounds.Size.Y, 0.10);
-    }
-  }
-
-  public void SetChar(char character)
-  {
-    if (label == null) return;
-    label.Text = character.ToString();
-    UpdateBounds();
-  }
-
-
-  private void UpdateBounds()
-  {
-    if (label == null) return;
-    var bounds = label.GetCharacterBounds(0);
-    if (_cursorType == CursorType.Block){
-      Size = bounds.Size;
-    } else {
-      Size = new Vector2(3, Size.Y);
+      t.TweenProperty(this, "size:x", BlockSize.X, 0.10);
+      t.TweenProperty(this, "size:y", BlockSize.Y, 0.10);
     }
   }
 }

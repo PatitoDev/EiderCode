@@ -280,9 +280,8 @@ public partial class CodeEditor : Control
         var newPostion = ConvertEditorPosition(_codeEngine.CursorPosition);
         if (newPostion != null) {
             _cursor?.MoveTo(newPostion.Value.position);
-            _cursor?.SetChar(newPostion.Value.character);
+            //_cursor?.SetChar(newPostion.Value.character);
         }
-
     }
 
     public (Vector2 position, char character)? ConvertEditorPosition(EditorPosition position)

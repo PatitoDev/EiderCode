@@ -1,15 +1,42 @@
-[gd_scene load_steps=7 format=3 uid="uid://dpmkkkfqc767f"]
+[gd_scene load_steps=8 format=3 uid="uid://dpmkkkfqc767f"]
 
+[ext_resource type="Shader" uid="uid://do25cgmb1ravu" path="res://EiderCode.UI/Components/Cursor/Cursor.gdshader" id="1_o6anj"]
 [ext_resource type="Script" uid="uid://dj3lhfjx2ce3q" path="res://EiderCode.UI/Components/Cursor/Cursor.cs" id="1_uwjmv"]
-[ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://EiderCode.UI/Theme/CodeEditorTheme.tres" id="2_o6anj"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_o6anj"]
+shader = ExtResource("1_o6anj")
+shader_parameter/tolerance = 0.0
+shader_parameter/a1 = Color(0.117647, 0.117647, 0.180392, 1)
+shader_parameter/a2 = Color(0, 0, 0, 1)
+shader_parameter/b1 = Color(0, 0, 0, 1)
+shader_parameter/b2 = Color(0, 0, 0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_asckw"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
 bg_color = Color(1, 1, 1, 1)
 border_color = Color(1, 1, 1, 1)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
+
+[sub_resource type="Animation" id="Animation_egcys"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
 
 [sub_resource type="Animation" id="Animation_o6anj"]
 resource_name = "blink"
@@ -29,21 +56,6 @@ tracks/0/keys = {
 "values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
 }
 
-[sub_resource type="Animation" id="Animation_egcys"]
-length = 0.001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:modulate")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [Color(1, 1, 1, 1)]
-}
-
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_qbtgw"]
 _data = {
 &"RESET": SubResource("Animation_egcys"),
@@ -51,26 +63,13 @@ _data = {
 }
 
 [node name="Panel" type="Panel"]
+material = SubResource("ShaderMaterial_o6anj")
 offset_right = 20.0
 offset_bottom = 35.0
+size_flags_horizontal = 4
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_asckw")
 script = ExtResource("1_uwjmv")
-
-[node name="Label" type="Label" parent="."]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(20, 0)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme = ExtResource("2_o6anj")
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-text = "C"
-horizontal_alignment = 1
-vertical_alignment = 2
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
