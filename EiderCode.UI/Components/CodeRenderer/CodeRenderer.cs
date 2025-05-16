@@ -4,6 +4,7 @@ using Godot;
 using System.Threading;
 using System.Threading.Tasks;
 
+// TODO - when having multiple code renderes make sure to free canvas RIDs
 public partial class CodeRenderer : Control
 {
     public CodeEngine? _codeEngine;
@@ -41,36 +42,13 @@ public partial class CodeRenderer : Control
 
     public void OnFileOpen()
     {
-        CallDeferred(CodeRenderer.MethodName.ResetCanvas, _canvasId);
-        _canvasId = RenderingServer.CanvasItemCreate();
-        RenderingServer.CanvasItemSetParent(_canvasId, GetCanvasItem());
+        RenderingServer.CanvasItemClear(_canvasId);
     }
 
     public void ResetCanvas(Rid canvasIdToDelete)
     {
         RenderingServer.CanvasItemClear(canvasIdToDelete);
-        RenderingServer.FreeRid(canvasIdToDelete);
     }
-
-    /*
-    private async Task RenderCodeFileAsync(Document document, CancellationToken cancellationToken)
-    {
-        RenderingServer.CanvasItemClear(_canvasId);
-
-        var drawingCursor = new Vector2(0, _fontSize);
-
-        var tasks = document
-          .Lines
-          .Select((line, index) => Task.Run(() =>
-          {
-              if (cancellationToken.IsCancellationRequested) return;
-              RenderLine(line, new Vector2(0, (_charSize.Y * (index + 1))));
-          }))
-        .ToArray();
-
-        await Task.WhenAll(tasks);
-    }
-*/
 
     private void RenderLine(DocumentLine line, Vector2 drawingCursor, CancellationToken cancellationToken)
     {

@@ -44,6 +44,13 @@ public partial class Editor : MarginContainer
         _codeRenderer._charSize = _charSize;
         _codeRenderer._codeEngine = _codeEngine;
         _codeRenderer._textServer = _textServer;
+
+        _gutterRenderer._fontSize = _fontSize;
+        _gutterRenderer._font = _font;
+        _gutterRenderer._charSize = _charSize;
+        _gutterRenderer._codeEngine = _codeEngine;
+        _gutterRenderer._textServer = _textServer;
+        _gutterRenderer.initListeners();
     }
 
     public void OpenFile(string filePath)
@@ -59,16 +66,20 @@ public partial class Editor : MarginContainer
 
         _codeEngine.OnLineParsed += async (o, ev) =>
         {
+            if (_gutterRenderer == null) return;
             if (_codeRenderer == null) return;
             var line = ev.Line;
             if (cancellationToken.IsCancellationRequested) return;
             await _codeRenderer.OnLineParsedAsync(line, cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return;
+            await _gutterRenderer.OnLineParsedAsync(line, cancellationToken);
         };
 
         Task.Run(async () =>
         {
             if (cancellationToken.IsCancellationRequested) return;
             _codeRenderer?.OnFileOpen();
+            _gutterRenderer?.OnFileOpen();
             if (cancellationToken.IsCancellationRequested) return;
             await _codeEngine.OpenFileAsync(filePath, cancellationToken);
         });

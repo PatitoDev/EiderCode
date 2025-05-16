@@ -19,6 +19,7 @@ public class OnLineParsedEventArgs : EventArgs
 
 public class CodeEngine
 {
+    public event EventHandler? OnFinishedParsing;
     public event EventHandler<OnLineParsedEventArgs>? OnLineParsed;
 
     public event EventHandler? OnModeChange;
@@ -29,8 +30,8 @@ public class CodeEngine
 
     public EditorPosition CursorPosition { get; private set; }
     public string Content { get; private set; } = "";
-    private List<string> Lines = new List<string>();
-    private List<DocumentLine> DocumentLines;
+    public List<string> Lines = new List<string>();
+    public List<DocumentLine> DocumentLines;
     public int LineCount { get; private set; } = 0;
     public string FilePath { get; private set; } = "";
 
@@ -45,6 +46,12 @@ public class CodeEngine
             CharNumber = 0
         };
         viStack = new();
+    }
+
+    public Color GetGuiColor(string key)
+    {
+        var color = _tokenizer.Theme.GetGuiColorDictionary()[key];
+        return Color.FromString(color, Colors.Red);
     }
 
     public void ClearOnLineParsedEvent()
@@ -98,6 +105,7 @@ public class CodeEngine
         }
 
         streamReader.Dispose();
+        OnFinishedParsing?.Invoke(this, EventArgs.Empty);
 
         return new Document()
         {

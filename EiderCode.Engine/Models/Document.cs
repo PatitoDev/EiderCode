@@ -3,7 +3,6 @@ using EiderCode.Engine.TokenGeneration;
 
 namespace EiderCode.Engine.Models;
 
-
 public record DocumentLine
 {
     public required int Index;
