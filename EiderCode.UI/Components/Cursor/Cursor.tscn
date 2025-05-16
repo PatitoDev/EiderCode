@@ -53,6 +53,7 @@ _data = {
 [node name="Panel" type="Panel"]
 offset_right = 20.0
 offset_bottom = 35.0
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_asckw")
 script = ExtResource("1_uwjmv")
 
