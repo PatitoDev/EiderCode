@@ -22,6 +22,12 @@ public partial class CodeEditor : Control
 
     private CodeEngine? _codeEngine;
 
+   private Rid canvasId;
+   private Rid fontId;
+   private Rid textId;
+   private SystemFont font;
+   private TextServer ts;
+
     public override void _Ready()
     {
         _textContentNode = GetNode<VBoxContainer>("%RowsContainer");
@@ -32,6 +38,26 @@ public partial class CodeEditor : Control
         ClearEditor();
         RenderLineNumbers(0);
         _addCursorEvents();
+
+        var fonts = OS.GetSystemFonts();
+        font = new SystemFont();
+        font.FontNames = [fonts[0]];
+        font.AllowSystemFallback = true;
+
+        canvasId = RenderingServer.CanvasItemCreate();
+  RenderingServer.CanvasItemSetParent(canvasId, ((HBoxContainer)_scrollContainer.GetChild(0)).GetCanvasItem());
+  RenderingServer.CanvasItemSetZIndex(canvasId, 99);
+
+       var ff = _godotEditorTheme.DefaultFont;
+        ts = TextServerManager.GetPrimaryInterface();
+        textId = ts.CreateShapedText(TextServer.Direction.Ltr, TextServer.Orientation.Horizontal);
+        ts.ShapedTextAddString(textId, "hello world", ff.GetRids(), 50);
+        ts.ShapedTextDraw(textId, canvasId, new Vector2(50,50), -1, -1, Colors.Red);
+        ts.ShapedTextAddString(textId, "oooo", ff.GetRids(), 20);
+        ts.ShapedTextDraw(textId, canvasId, new Vector2(50,50), -1, -1, Colors.Blue);
+        ts.ShapedTextClear(textId);
+        ts.FreeRid(textId);
+        RenderingServer.CanvasItemClear(canvasId);
     }
 
     public void OpenFile(string filePath)
@@ -48,7 +74,7 @@ public partial class CodeEditor : Control
         );
         var content = file.GetAsText();
 
-        _codeEngine = new CodeEngine(filePath, content);
+        _codeEngine = new CodeEngine();
         RenderCodeTokens(_codeEngine.GetTokens());
         s.Stop();
         GD.Print("Loaded and rendered file in: ", s.ElapsedMilliseconds);
@@ -175,7 +201,6 @@ public partial class CodeEditor : Control
             if (e is not InputEventMouseButton) return;
             var mouseEvent = (InputEventMouseButton) e;
             if (mouseEvent.ButtonIndex != MouseButton.Left) return;
-            GD.Print("Clicked on scroll");
             // not implemented
         };
     }
@@ -194,13 +219,10 @@ public partial class CodeEditor : Control
             var localPosition = mouseEvent.Position;
             var charCount = label.Text.Length;
 
-            GD.Print("Clicked on label: ", label.Text);
             for (var i = 0; i < charCount; i++) {
                 var bounds = label.GetCharacterBounds(i);
 
                 if (!(localPosition.X > bounds.Position.X && localPosition.X < bounds.End.X)) continue;
-
-                GD.Print("Character clicked: ", label.Text[i]);
 
                 var targetCursorPosition = label.GlobalPosition + bounds.Position;
                 if (_cursor == null || _codeEngine == null) return;
@@ -280,8 +302,6 @@ public partial class CodeEditor : Control
                 position.CharNumber >= charCount &&
                 position.CharNumber < charCount + contentLength
             ){
-                GD.Print("found char in conversion: ", tokenLabel.Text);
-
                 var bounds = tokenLabel.GetCharacterBounds(position.CharNumber - charCount);
                 var targetCursorPosition = tokenLabel.GlobalPosition + bounds.Position;
                 return (targetCursorPosition, tokenLabel.Text[position.CharNumber - charCount]);

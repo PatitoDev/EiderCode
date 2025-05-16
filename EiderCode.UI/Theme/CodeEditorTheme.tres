@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=5 format=3 uid="uid://jb4w7dxc3676"]
+[gd_resource type="Theme" load_steps=6 format=3 uid="uid://jb4w7dxc3676"]
 
 [sub_resource type="SystemFont" id="SystemFont_7lris"]
 font_names = PackedStringArray("SF Mono")
@@ -21,7 +21,12 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="SystemFont" id="SystemFont_gqaum"]
+font_names = PackedStringArray("SF Mono")
+
 [resource]
+default_font = SubResource("SystemFont_gqaum")
+default_font_size = 22
 Label/colors/font_color = Color(0.792157, 0.827451, 0.960784, 1)
 Label/font_sizes/font_size = 22
 Label/fonts/font = SubResource("SystemFont_7lris")

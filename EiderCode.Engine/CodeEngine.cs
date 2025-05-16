@@ -4,12 +4,23 @@ using System.Linq;
 using Godot;
 using EiderCode.Engine.Models;
 using EiderCode.Engine.TokenGeneration;
+using System.IO;
+using System.Threading.Tasks;
+using System.Threading;
+using TextMateSharp.Grammars;
 
 namespace EiderCode.Engine;
+
+public class OnLineParsedEventArgs : EventArgs
+{
+    public required DocumentLine Line { get; init; }
+}
 
 
 public class CodeEngine
 {
+    public event EventHandler<OnLineParsedEventArgs>? OnLineParsed;
+
     public event EventHandler? OnModeChange;
     public event EventHandler? OnContentChanged;
     public event EventHandler? OnCursorPositionChanged;
@@ -17,25 +28,82 @@ public class CodeEngine
     private Tokenizer _tokenizer = new();
 
     public EditorPosition CursorPosition { get; private set; }
-    public string Content { get; private set; }
-    private List<string> Lines;
-    public int LineCount { get; private set; }
-    public string FilePath { get; private set; }
+    public string Content { get; private set; } = "";
+    private List<string> Lines = new List<string>();
+    private List<DocumentLine> DocumentLines;
+    public int LineCount { get; private set; } = 0;
+    public string FilePath { get; private set; } = "";
 
     private ViStack viStack;
 
-    public CodeEngine(string filePath, string content)
+    public CodeEngine()
     {
-        FilePath = filePath;
-        Content = content;
-        Lines = content.Split("\n").ToList();
-        LineCount = Lines.Count();
+        DocumentLines = new();
         CursorPosition = new EditorPosition()
         {
             LineNumber = 0,
             CharNumber = 0
         };
         viStack = new();
+    }
+
+    public void ClearOnLineParsedEvent()
+    {
+        if (OnLineParsed == null) return;
+
+        foreach (Delegate d in OnLineParsed.GetInvocationList())
+        {
+            OnLineParsed -= (EventHandler<OnLineParsedEventArgs>)d;
+        }
+        GD.Print("clearing line: ", OnLineParsed?.GetInvocationList().Length);
+    }
+
+    public async Task<Document> OpenFileAsync(string filePath, CancellationToken cancellationToken)
+    {
+        DocumentLines = new();
+        viStack = new();
+        CursorPosition = new EditorPosition()
+        {
+            LineNumber = 0,
+            CharNumber = 0
+        };
+        Lines = new List<string>();
+        FilePath = filePath;
+
+        //Lines = content.Split("\n").ToList();
+        //LineCount = Lines.Count()
+        _tokenizer.LoadGrammar(filePath);
+        var streamReader = File.OpenText(filePath);
+        LineCount = 0;
+
+        IStateStack? stack = null;
+
+        while (!streamReader.EndOfStream)
+        {
+            var line = await streamReader.ReadLineAsync(cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return new Document() { Lines = Array.Empty<DocumentLine>() };
+            if (line == null) break; // handle done reading
+            Lines.Add(line);
+            var (DocumentLine, newStack) = _tokenizer.TokenizeLine(line, LineCount, stack);
+            if (cancellationToken.IsCancellationRequested) return new Document() { Lines = Array.Empty<DocumentLine>() };
+
+            OnLineParsed?.Invoke(this, new()
+            {
+                Line = DocumentLine
+            });
+
+            LineCount += 1;
+            stack = newStack;
+            DocumentLines.Add(DocumentLine);
+        }
+
+        streamReader.Dispose();
+
+        return new Document()
+        {
+            Lines = DocumentLines.ToArray()
+        };
+
     }
 
     public Document GetTokens()
@@ -45,16 +113,17 @@ public class CodeEngine
         if (tokenizerResult == null)
         {
             var lines = Lines
-              .Select(contentLine => new DocumentLine()
+              .Select((contentLine, index) => new DocumentLine()
               {
-                  Tokens = new List<CodeToken>(){
-                    new CodeToken {
-                    Content = contentLine,
-                    Scopes = Array.Empty<Scope>()
-                  }
-                }
+                  Index = index,
+                  Tokens = [new CodeToken()
+                    {
+                      Content = contentLine,
+                      Scopes = Array.Empty<Scope>()
+                    }
+                  ]
               })
-              .ToList();
+              .ToArray();
 
             return new Document()
             {
@@ -64,27 +133,29 @@ public class CodeEngine
 
         return new Document()
         {
-            Lines = tokenizerResult.Select(line =>
+            Lines = tokenizerResult.Select((line, index) =>
               new DocumentLine()
               {
+                  Index = index,
                   Tokens = line
               })
-              .ToList()
+              .ToArray()
         };
     }
 
     public void MoveCursorPosition(EditorPosition position)
     {
-      var targetLineNumber = Math.Clamp(position.LineNumber, 0, Lines.Count - 1);
-      var targetChar = Math.Clamp(position.CharNumber, 0,
-        Math.Max(Lines[targetLineNumber]!.Length - 1, 0)
-      );
+        var targetLineNumber = Math.Clamp(position.LineNumber, 0, Lines.Count - 1);
+        var targetChar = Math.Clamp(position.CharNumber, 0,
+          Math.Max(Lines[targetLineNumber]!.Length - 1, 0)
+        );
 
-      CursorPosition = new EditorPosition(){
-        CharNumber = targetChar,
-        LineNumber = targetLineNumber
-      };
-      OnCursorPositionChanged?.Invoke(this, new EventArgs());
+        CursorPosition = new EditorPosition()
+        {
+            CharNumber = targetChar,
+            LineNumber = targetLineNumber
+        };
+        OnCursorPositionChanged?.Invoke(this, new EventArgs());
     }
 
     private Dictionary<Key, string> _insertMap = new(){
@@ -97,121 +168,131 @@ public class CodeEngine
 
     public void HandleKeyPress(InputKey key)
     {
-      GD.Print("Code: ", key.KeyCode);
-      GD.Print("Unicode: ", key.Unicode);
-      GD.Print("IsShifted: ", key.IsShiftPressed);
-      GD.Print("IsControlPressed: ", key.IsControlPressed);
+        GD.Print("Code: ", key.KeyCode);
+        GD.Print("Unicode: ", key.Unicode);
+        GD.Print("IsShifted: ", key.IsShiftPressed);
+        GD.Print("IsControlPressed: ", key.IsControlPressed);
 
-      if (key.KeyCode == Key.Escape) {
-        CurrentMode = ViMode.Normal;
-        // clear action stack
-        OnModeChange?.Invoke(this, EventArgs.Empty);
-        viStack = new();
-        return;
-      }
+        if (key.KeyCode == Key.Escape)
+        {
+            CurrentMode = ViMode.Normal;
+            // clear action stacku
+            OnModeChange?.Invoke(this, EventArgs.Empty);
+            viStack = new();
+            return;
+        }
 
-      switch (CurrentMode) {
-        case ViMode.Normal:
-          HandleNormalMode(key);
-          return;
-        case ViMode.Insert:
-          HandleInsertMode(key);
-          return;
-      }
+        switch (CurrentMode)
+        {
+            case ViMode.Normal:
+                HandleNormalMode(key);
+                return;
+            case ViMode.Insert:
+                HandleInsertMode(key);
+                return;
+        }
     }
 
     private void HandleNormalMode(InputKey key)
     {
-      var keyChar = key.ToString()[0];
-      // Motion without an action
-      var motion = MotionBuilder.HandleMotion(
-        key,
-        Lines,
-        CursorPosition
-      );
+        var keyChar = key.ToString()[0];
+        // Motion without an action
+        var motion = MotionBuilder.HandleMotion(
+          key,
+          Lines,
+          CursorPosition
+        );
 
-      // handle stack
-      if (motion != null) {
-        // motion is the last action so execute;
-        if (
-          viStack.CurrentAction == null
-        ) {
-          MoveCursorPosition(motion.End);
-          return;
-        } else {
-          viStack.Motion = motion;
+        // handle stack
+        if (motion != null)
+        {
+            // motion is the last action so execute;
+            if (
+              viStack.CurrentAction == null
+            )
+            {
+                MoveCursorPosition(motion.End);
+                return;
+            }
+            else
+            {
+                viStack.Motion = motion;
 
-          var result = ActionBuilder.ExectueAction(
-            CursorPosition,
-            viStack,
-            CurrentMode,
-            Lines
-          );
-          HandleExecuteResult(result);
-          return;
+                var result = ActionBuilder.ExectueAction(
+                  CursorPosition,
+                  viStack,
+                  CurrentMode,
+                  Lines
+                );
+                HandleExecuteResult(result);
+                return;
+            }
+            // else when there is an action
         }
-        // else when there is an action
-      }
 
-      var action = ActionBuilder.GetAction(key, viStack);
-      if (action.Action != null) {
-        viStack.CurrentAction = action.Action;
+        var action = ActionBuilder.GetAction(key, viStack);
+        if (action.Action != null)
+        {
+            viStack.CurrentAction = action.Action;
 
-        // add action to stack or execute it if ready
-        if (action.IsReadyToExecute) {
-          // ready to execute so do action
-          var result = ActionBuilder.ExectueAction(
-            CursorPosition,
-            viStack,
-            CurrentMode,
-            Lines
-          );
-          HandleExecuteResult(result);
-          return;
+            // add action to stack or execute it if ready
+            if (action.IsReadyToExecute)
+            {
+                // ready to execute so do action
+                var result = ActionBuilder.ExectueAction(
+                  CursorPosition,
+                  viStack,
+                  CurrentMode,
+                  Lines
+                );
+                HandleExecuteResult(result);
+                return;
+            }
+            viStack.CurrentAction = action.Action;
+            return;
         }
-        viStack.CurrentAction = action.Action;
-        return;
-      }
 
-      // reset stack
-      viStack = new();
+        // reset stack
+        viStack = new();
     }
 
     private void HandleInsertMode(InputKey key)
     {
-      var result = InsertModeBuilder.HandleInsertMode(key, Lines, CursorPosition);
-      if (result == null) return;
+        var result = InsertModeBuilder.HandleInsertMode(key, Lines, CursorPosition);
+        if (result == null) return;
 
-      Lines = result.Lines;
-      UpdateTextFromLinesBuffer();
-      MoveCursorPosition(result.CursorPosition);
+        Lines = result.Lines;
+        UpdateTextFromLinesBuffer();
+        MoveCursorPosition(result.CursorPosition);
     }
 
     public void UpdateTextFromLinesBuffer()
     {
-      var newText = string.Join("\n", Lines);
-      Content = newText;
-      OnContentChanged?.Invoke(this, new EventArgs());
+        var newText = string.Join("\n", Lines);
+        Content = newText;
+        OnContentChanged?.Invoke(this, new EventArgs());
     }
 
     private void HandleExecuteResult(ExecuteResult result)
     {
-      if (result.ChangedMode.HasValue)
-      {
-        CurrentMode = result.ChangedMode.Value;
-        OnModeChange?.Invoke(this, EventArgs.Empty);
-      }
+        if (result.ChangedMode.HasValue)
+        {
+            CurrentMode = result.ChangedMode.Value;
+            OnModeChange?.Invoke(this, EventArgs.Empty);
+        }
 
-      if (result.NewCursorPosition != null){
-        CursorPosition = result.NewCursorPosition;
-        OnCursorPositionChanged?.Invoke(this, EventArgs.Empty);
-      }
+        if (result.NewCursorPosition != null)
+        {
+            CursorPosition = result.NewCursorPosition;
+            OnCursorPositionChanged?.Invoke(this, EventArgs.Empty);
+        }
 
-      if (result.Lines != null) {
-        Lines = result.Lines;
-        UpdateTextFromLinesBuffer();
-      }
+        if (result.Lines != null)
+        {
+            Lines = result.Lines;
+            UpdateTextFromLinesBuffer();
+        }
 
-      viStack = new();
+        viStack = new();
     }
 }

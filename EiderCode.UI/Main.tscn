@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bfk5svwpqopem" path="res://EiderCode.UI/Main.cs" id="1_glv2v"]
 [ext_resource type="PackedScene" uid="uid://b2vppnh6ixp8b" path="res://EiderCode.UI/Components/FileExplorer/FileExplorer.tscn" id="2_r0du0"]
-[ext_resource type="PackedScene" uid="uid://bpjq7ppqs66lb" path="res://EiderCode.UI/Components/CodeEditor/CodeEditor.tscn" id="4_cm0pq"]
+[ext_resource type="PackedScene" uid="uid://c7w6qkdc1kjmw" path="res://EiderCode.UI/Components/CodeRenderer/Editor.tscn" id="3_cpyu5"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -59,6 +59,17 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.117647, 0.117647, 0.180392, 1)
 
-[node name="CodeEditor" parent="HSplitContainer/Control/VSplitContainer/Control" instance=ExtResource("4_cm0pq")]
-unique_name_in_owner = true
+[node name="ScrollContainer" type="ScrollContainer" parent="HSplitContainer/Control/VSplitContainer/Control"]
 layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+vertical_scroll_mode = 2
+
+[node name="Editor" parent="HSplitContainer/Control/VSplitContainer/Control/ScrollContainer" instance=ExtResource("3_cpyu5")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3

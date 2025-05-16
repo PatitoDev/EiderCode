@@ -2,6 +2,13 @@ namespace EiderCode.Engine.Models;
 
 public record EditorPosition
 {
-    public required int LineNumber { get; set; }
-    public required int CharNumber { get; set; }
+    public EditorPosition(int lineNumber, int charNumber){
+        LineNumber = lineNumber;
+        CharNumber = charNumber;
+    }
+
+    public EditorPosition() {}
+
+    public int LineNumber { get; init; }
+    public int CharNumber { get; init; }
 }

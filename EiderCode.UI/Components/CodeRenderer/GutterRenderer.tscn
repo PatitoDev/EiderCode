@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://cdyx7ct46o4a7"]
+
+[ext_resource type="Script" uid="uid://djpg8wgx3x0n8" path="res://EiderCode.UI/Components/CodeRenderer/GutterRenderer.cs" id="1_2eu2t"]
+
+[node name="GutterRenderer" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_2eu2t")

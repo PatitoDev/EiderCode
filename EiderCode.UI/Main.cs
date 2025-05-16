@@ -13,12 +13,14 @@ public partial class Main : Control
 
         // handle combination keys like accents
         GetWindow().SetImeActive(true);
-        var codeEditor = GetNode<CodeEditor>("%CodeEditor");
+        //var codeEditor = GetNode<CodeEditor>("%CodeEditor");
+        var editor = GetNode<Editor>("%Editor");
 
         explorer = GetNode<FileExplorer>("%FileExplorer");
         explorer.OnFileOpen += (filePath) =>
         {
-            codeEditor.OpenFile(filePath);
+            //codeEditor.OpenFile(filePath);
+            editor.OpenFile(filePath);
         };
 
     }

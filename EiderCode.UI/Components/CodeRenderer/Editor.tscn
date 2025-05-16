@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3 uid="uid://c7w6qkdc1kjmw"]
+
+[ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://EiderCode.UI/Theme/CodeEditorTheme.tres" id="1_7foty"]
+[ext_resource type="Script" uid="uid://c37iop8erlvdj" path="res://EiderCode.UI/Components/CodeRenderer/Editor.cs" id="2_bie2n"]
+[ext_resource type="PackedScene" uid="uid://cdyx7ct46o4a7" path="res://EiderCode.UI/Components/CodeRenderer/GutterRenderer.tscn" id="3_cqh5o"]
+[ext_resource type="PackedScene" uid="uid://cv4f003rjd8n2" path="res://EiderCode.UI/Components/CodeRenderer/CodeRenderer.tscn" id="4_h5ky8"]
+
+[node name="Editor" type="MarginContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_7foty")
+script = ExtResource("2_bie2n")
+
+[node name="GutterRenderer" parent="." instance=ExtResource("3_cqh5o")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="CodeRenderer" parent="." instance=ExtResource("4_h5ky8")]
+unique_name_in_owner = true
+layout_mode = 2

@@ -6,10 +6,11 @@ namespace EiderCode.Engine.Models;
 
 public record DocumentLine
 {
-    public required IReadOnlyList<CodeToken> Tokens;
+    public required int Index;
+    public required CodeToken[] Tokens;
 }
 
 public record Document
 {
-    public required IReadOnlyList<DocumentLine> Lines;
+    public required DocumentLine[] Lines;
 }
