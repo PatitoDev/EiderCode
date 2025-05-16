@@ -80,20 +80,12 @@ public class CodeEngine
         Math.Max(Lines[targetLineNumber]!.Length - 1, 0)
       );
 
-      GD.Print("new line number", targetLineNumber);
       CursorPosition = new EditorPosition(){
         CharNumber = targetChar,
         LineNumber = targetLineNumber
       };
       OnCursorPositionChanged?.Invoke(this, new EventArgs());
     }
-
-    private Dictionary<Key, EditorPosition> _motionMap = new(){
-        { Key.J, new() { CharNumber = 0, LineNumber = 1 } },
-        { Key.K, new() { CharNumber = 0, LineNumber = -1 } },
-        { Key.L, new() { CharNumber = 1, LineNumber = 0 } },
-        { Key.H, new() { CharNumber = -1, LineNumber = 0 } },
-    };
 
     private Dictionary<Key, string> _insertMap = new(){
         { Key.Enter, "\\n" },
@@ -183,63 +175,16 @@ public class CodeEngine
 
       // reset stack
       viStack = new();
-
-      if (_motionMap.TryGetValue(key.KeyCode, out var v)) {
-        MoveCursorPosition(new(){
-          CharNumber = CursorPosition.CharNumber + v.CharNumber,
-          LineNumber = CursorPosition.LineNumber + v.LineNumber
-        });
-      }
     }
 
     private void HandleInsertMode(InputKey key)
     {
-      if (key.IsControlPressed && key.KeyCode == Key.V)
-      {
-        if (
-          DisplayServer.ClipboardHasImage() ||
-          !DisplayServer.ClipboardHas()
-        ){
-          return;
-        }
+      var result = InsertModeBuilder.HandleInsertMode(key, Lines, CursorPosition);
+      if (result == null) return;
 
-        var textFromClipboard = DisplayServer.ClipboardGet();
-        // TODO - move to end
-        AddTextToCursor(textFromClipboard);
-        return;
-      }
-
-      if (key.Unicode == null) return;
-      var printableChar = Convert.ToChar(key.Unicode);
-      AddCharToCursor(printableChar);
-      MoveCursorPosition(new(){
-          CharNumber = CursorPosition.CharNumber + 1,
-          LineNumber = CursorPosition.LineNumber
-      });
-    }
-
-    public void AddCharToCursor(char text)
-    {
-      Lines[CursorPosition.LineNumber] = Lines[CursorPosition.LineNumber]
-        .Insert(CursorPosition.CharNumber, text.ToString());
+      Lines = result.Lines;
       UpdateTextFromLinesBuffer();
-    }
-
-    public void AddTextToCursor(string text)
-    {
-      var linesToAdd = text.Split("\n");
-
-      var firstLine = linesToAdd.FirstOrDefault();
-      if (firstLine != null) {
-        Lines[CursorPosition.LineNumber] = Lines[CursorPosition.LineNumber].Insert(CursorPosition.CharNumber, firstLine);
-      }
-
-      foreach (var line in linesToAdd.Skip(1))
-      {
-        Lines.Insert(CursorPosition.LineNumber + 1, line);
-      }
-
-      UpdateTextFromLinesBuffer();
+      MoveCursorPosition(result.CursorPosition);
     }
 
     public void UpdateTextFromLinesBuffer()

@@ -57,6 +57,11 @@ public static class MotionBuilder
     { (long)Key.Asciicircum, HandleCircumflexAccent },
     { (long)Key.Dollar , HandleDollarSign },
     { (long)Convert.ToInt32('w') , HandleWord },
+    { (long)Convert.ToInt32('b') , HandleBWord },
+    { (long)Convert.ToInt32('j') , HandleJ },
+    { (long)Convert.ToInt32('k') , HandleK },
+    { (long)Convert.ToInt32('h') , HandleH },
+    { (long)Convert.ToInt32('l') , HandleL },
   };
 
   public static Motion? HandleMotion(
@@ -151,6 +156,92 @@ public static class MotionBuilder
     };
   }
 
+  //h
+  private static Motion? HandleH(
+    InputKey key,
+    List<string> lines,
+    EditorPosition cursorPosition,
+    string lastKey = ""
+  )
+  {
+    return new Motion(){
+      Start = new(){
+        CharNumber = cursorPosition.CharNumber,
+        LineNumber = cursorPosition.LineNumber,
+      },
+      End = new(){
+        CharNumber = Math.Max(cursorPosition.CharNumber - 1, 0),
+        LineNumber = cursorPosition.LineNumber
+      },
+      MotionStack = key.KeyCode.ToString()
+    };
+  }
+
+  //l
+  private static Motion? HandleL(
+    InputKey key,
+    List<string> lines,
+    EditorPosition cursorPosition,
+    string lastKey = ""
+  )
+  {
+    var currentLineLength = lines[cursorPosition.LineNumber].Length;
+
+    return new Motion(){
+      Start = new(){
+        CharNumber = cursorPosition.CharNumber,
+        LineNumber = cursorPosition.LineNumber,
+      },
+      End = new(){
+        CharNumber = Math.Min(cursorPosition.CharNumber + 1, currentLineLength -1),
+        LineNumber = cursorPosition.LineNumber
+      },
+      MotionStack = key.KeyCode.ToString()
+    };
+  }
+
+  //k
+  private static Motion? HandleK(
+    InputKey key,
+    List<string> lines,
+    EditorPosition cursorPosition,
+    string lastKey = ""
+  )
+  {
+    return new Motion(){
+      Start = new(){
+        CharNumber = cursorPosition.CharNumber,
+        LineNumber = cursorPosition.LineNumber,
+      },
+      End = new(){
+        CharNumber = cursorPosition.CharNumber,
+        LineNumber = Math.Max(cursorPosition.LineNumber - 1, 0)
+      },
+      MotionStack = key.KeyCode.ToString()
+    };
+  }
+
+  //j
+  private static Motion? HandleJ(
+    InputKey key,
+    List<string> lines,
+    EditorPosition cursorPosition,
+    string lastKey = ""
+  )
+  {
+    return new Motion(){
+      Start = new(){
+        CharNumber = cursorPosition.CharNumber,
+        LineNumber = cursorPosition.LineNumber,
+      },
+      End = new(){
+        CharNumber = cursorPosition.CharNumber,
+        LineNumber = Math.Min(cursorPosition.LineNumber + 1, lines.Count)
+      },
+      MotionStack = key.KeyCode.ToString()
+    };
+  }
+
   // w
   // Go to the next word
   // word - characters, numberss or underscore sperated from whitespace
@@ -196,5 +287,53 @@ public static class MotionBuilder
       MotionStack = key.KeyCode.ToString()
     };
   }
+
+  // b
+  // Go to the previous word
+  // word - characters, numberss or underscore sperated from whitespace
+  private static Motion? HandleBWord(
+    InputKey key,
+    List<string> lines,
+    EditorPosition cursorPosition,
+    string lastKey = ""
+  )
+  {
+    var charPosition = cursorPosition.CharNumber;
+    var lineNumber = cursorPosition.LineNumber;
+    var currentLine = lines[lineNumber]!;
+
+    var stringToMatch = currentLine.Substring(0, charPosition + 1);
+    var matches = Regex.Matches(stringToMatch, "(\\w+)|(\\S)");
+
+    if (matches.Count == 0) return null; // search on next line
+
+    // we are going backwards
+    var firstMatch = matches[matches.Count - 1];
+    var isFirstMatchOnCursor = firstMatch.Index == stringToMatch.Length - 1;
+
+    var index = firstMatch.Index;
+
+    if (isFirstMatchOnCursor) {
+      // return as we can't find a secondary match
+      if (matches.Count < 2) return null; // search on next line
+
+      // get next match
+      var nextMatch = matches[matches.Count - 2];
+      index = nextMatch.Index;
+    }
+
+    return new Motion(){
+      Start = new() {
+        CharNumber = cursorPosition.CharNumber,
+        LineNumber = cursorPosition.LineNumber
+      },
+      End = new(){
+        CharNumber = index,
+        LineNumber = cursorPosition.LineNumber
+      },
+      MotionStack = key.KeyCode.ToString()
+    };
+  }
+
 }
 
