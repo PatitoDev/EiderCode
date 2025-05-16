@@ -12,16 +12,13 @@ namespace EiderCode.Engine.TokenGeneration;
 
 public class Tokenizer
 {
-    public IReadOnlyList<IReadOnlyList<CodeToken>>? Tokenize(
-        string fileName,
-        string fileContent
-    )
-    {
-        var options = new RegistryOptions(ThemeName.Dark);
-        var registry = new Registry(options);
-        var grammar = registry.LoadGrammar(options.GetScopeByExtension(Path.GetExtension(fileName)));
+    private Registry _registry;
+    private RegistryOptions _options;
+    public TextMateSharp.Themes.Theme Theme { get; private set; }
 
-        if (grammar == null) return null;
+    public Tokenizer(){
+        _options = new RegistryOptions(ThemeName.Dark);
+        _registry = new Registry(_options);
 
         var draculaThemeJson = GD.Load<Json>("res://EiderCode.Engine/CodeEditorThemes/catppuccin_macchiato.json");
         var js = Json.Stringify(draculaThemeJson.Data);
@@ -31,8 +28,20 @@ public class Tokenizer
         var streamReader = new StreamReader(memoryStream);
 
         var themeRaw = ThemeReader.ReadThemeSync(streamReader);
-        registry.SetTheme(themeRaw);
-        var theme = registry.GetTheme();
+        _registry.SetTheme(themeRaw);
+        Theme = _registry.GetTheme();
+    }
+
+    public IReadOnlyList<IReadOnlyList<CodeToken>>? Tokenize(
+        string fileName,
+        string fileContent
+    )
+    {
+        var scopeByExtension = _options.GetScopeByExtension(Path.GetExtension(fileName));
+        var grammar = _registry.LoadGrammar(scopeByExtension);
+        if (grammar == null) return null;
+
+        var theme = _registry.GetTheme();
 
         IStateStack? ruleStack = null;
 
@@ -42,7 +51,6 @@ public class Tokenizer
 
         foreach (var line in fileLines)
         {
-
             var lineTokens = new List<CodeToken>() { };
 
             var tokenizeResult = grammar.TokenizeLine(line, ruleStack, System.TimeSpan.MaxValue);

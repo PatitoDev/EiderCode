@@ -26,6 +26,8 @@ grow_vertical = 2
 
 [node name="Content" type="HBoxContainer" parent="ScrollContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="GutterContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
 unique_name_in_owner = true
@@ -35,6 +37,7 @@ theme_override_constants/separation = 0
 [node name="RowsContainer" type="VBoxContainer" parent="ScrollContainer/Content"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 0
 
 [node name="Row" type="HBoxContainer" parent="ScrollContainer/Content/RowsContainer"]

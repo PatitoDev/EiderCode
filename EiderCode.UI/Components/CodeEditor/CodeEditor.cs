@@ -10,8 +10,6 @@ namespace EiderCode.UI;
 
 public partial class CodeEditor : Control
 {
-    private Tokenizer _tokenizer = new();
-
     private VBoxContainer? _textContentNode;
     private VBoxContainer? _gutterContainer;
     private ScrollContainer? _scrollContainer;
@@ -107,14 +105,10 @@ public partial class CodeEditor : Control
             {
                 var relNumber = Math.Abs(lineCount - cursorLinePosition);
                 LineNumberBuilder.UpdateNumber((MarginContainer) child, relNumber, relNumber == 0);
-                //((LineNumber)child).SetLineNumber(relNumber);
-                //((LineNumber)child).SetIsCursorOnLine(relNumber == 0);
             }
             else
             {
                 LineNumberBuilder.UpdateNumber((MarginContainer) child, null, false);
-                //((LineNumber)child).SetLineNumber();
-                //((LineNumber)child).SetIsCursorOnLine(false);
             }
 
             lineCount += 1;
@@ -127,20 +121,11 @@ public partial class CodeEditor : Control
 
         for (var i = 0; i < amountToCreate; i++)
         {
-            //var lineNumber = _LineNumeberScene.Instantiate<LineNumber>();
-
             int? val = null;
             if (lineCount < amount)
             {
                 var relNumber = Math.Abs(lineCount - cursorLinePosition);
-                //lineNumber.SetLineNumber(relNumber);
-                //lineNumber.SetIsCursorOnLine(relNumber == 0);
                 val = relNumber;
-            }
-            else
-            {
-                //lineNumber.SetLineNumber();
-                //lineNumber.SetIsCursorOnLine(false);
             }
             var lineNumber = LineNumberBuilder.Create(val, _godotEditorTheme!, val == 0);
             _gutterContainer.AddChild(lineNumber);
@@ -172,8 +157,6 @@ public partial class CodeEditor : Control
             foreach (var token in line.Tokens)
             {
                 var label = _createLabel(token, lineCount, charCount);
-                //label.StartChar = charCount;
-                //label.LineNumber = lineCount;
                 lineContainer.AddChild(label);
                 charCount += token.Content.Length;
             }
@@ -197,13 +180,6 @@ public partial class CodeEditor : Control
     private Node _createLabel(CodeToken token, int lineNumber, int startChar)
     {
         var label = TokenLabelBuilder.Create(token, _godotEditorTheme!, lineNumber, startChar);
-        //var label = _TokenLabelScene.Instantiate<TokenLabel>();
-        //var label = new Label();
-        //label.Theme = _godotEditorTheme;
-        //var label = (Label)_TokenLabelSceneGD.Instantiate();
-        //label.Call("setLabel", token.Content);
-        //label.SetToken(token);
-        //label.Text = token.Content;
 
         label.MouseFilter = MouseFilterEnum.Pass;
 
@@ -234,9 +210,6 @@ public partial class CodeEditor : Control
                 };
 
                 _codeEngine.MoveCursorPosition(editorPosition);
-
-                //_cursor.MoveTo(targetCursorPosition);
-                //_cursor.SetBlockSize(bounds.Size);
                 return;
             }
         };
@@ -289,8 +262,6 @@ public partial class CodeEditor : Control
         foreach (var token in tokens)
         {
             var tokenLabel = (Label)token;
-            //var startChar = TokenLabelBuilder.GetStartChar(tokenLabel);
-            //charCount += tokenLabel.Text.Length;
             var contentLength = tokenLabel.Text.Length;
 
             if (
