@@ -1,8 +1,5 @@
 using EiderCode.Engine;
-using EiderCode.Engine.Models;
-using EiderCode.UI;
 using Godot;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,7 +14,6 @@ public partial class Editor : MarginContainer
 
     private CodeRenderer? _codeRenderer;
     private GutterRenderer? _gutterRenderer;
-    private Cursor? _cursor;
 
     public Editor()
     {
@@ -27,7 +23,7 @@ public partial class Editor : MarginContainer
 
         // assume font is monospace
         _charSize = _font.GetStringSize(
-          "a",
+          "A",
           HorizontalAlignment.Left,
           -1,
           Theme.DefaultFontSize
@@ -40,11 +36,9 @@ public partial class Editor : MarginContainer
 
     public override void _Ready()
     {
+        //GetNode<ColorRect>("%BGRect").Color = _codeEngine.GetGuiColor(GuiThemeKeys.EditorBg);
         _codeRenderer = GetNode<CodeRenderer>("%CodeRenderer");
         _gutterRenderer = GetNode<GutterRenderer>("%GutterRenderer");
-        _cursor = GetNode<Cursor>("%Cursor");
-        _cursor.BlockSize = _charSize;
-        _cursor.Size = _charSize;
 
         _codeRenderer._fontSize = _fontSize;
         _codeRenderer._font = _font;
@@ -59,31 +53,7 @@ public partial class Editor : MarginContainer
         _gutterRenderer._textServer = _textServer;
         _gutterRenderer.initListeners();
 
-        _codeEngine.OnCursorPositionChanged += (o, e) => {
-          CallDeferred(Editor.MethodName.UpdateCursorPosition);
-        };
-
-        _codeEngine.OnModeChange += (o, e) => {
-            if (_cursor == null) return;
-
-            _cursor.SetCursorType(
-                _codeEngine.CurrentMode == ViMode.Insert ?
-                 CursorType.Line :
-                 CursorType.Block
-            );
-        };
-
-        _codeEngine.OnContentChanged += (o, e) => {
-            if (ContentUpdateCancellationTokenSource != null) {
-                ContentUpdateCancellationTokenSource.Cancel();
-            }
-            ContentUpdateCancellationTokenSource = new();
-            var token = ContentUpdateCancellationTokenSource.Token;
-
-            Task.Run(() => {
-                _codeRenderer.RenderDocument(token);
-            });
-        };
+        _codeRenderer.SetupListeners();
     }
 
     public override void _GuiInput(InputEvent @event)
@@ -124,8 +94,8 @@ public partial class Editor : MarginContainer
         OpenFileCancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = OpenFileCancellationTokenSource.Token;
 
-        UpdateCursorPosition();
         GrabFocus();
+        _codeRenderer!.UpdateCursorPosition();
 
         _codeEngine.ClearOnLineParsedEvent();
 
@@ -148,26 +118,5 @@ public partial class Editor : MarginContainer
             if (cancellationToken.IsCancellationRequested) return;
             await _codeEngine.OpenFileAsync(filePath, cancellationToken);
         });
-    }
-
-
-    public void UpdateCursorPosition()
-    {
-        if (_codeEngine == null) return;
-
-        var lineCount = _codeEngine.LineCount;
-
-        var newPostion = ConvertToEditorPosition(_codeEngine.CursorPosition);
-        _cursor?.MoveTo(newPostion);
-            //_cursor?.SetChar(newPostion.Value.character);
-    }
-
-    public Vector2 ConvertToEditorPosition(EditorPosition position)
-    {
-        // top right
-        var y = (position.LineNumber * _charSize.Y);
-        var x = (position.CharNumber * _charSize.X);
-
-        return new Vector2(x,y) + _codeRenderer!.GlobalPosition + new Vector2(0, 5);
     }
 }

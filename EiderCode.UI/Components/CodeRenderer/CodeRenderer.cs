@@ -4,8 +4,8 @@ using Godot;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EiderCode.UI;
 
-// TODO - when having multiple code renderes make sure to free canvas RIDs
 public partial class CodeRenderer : Control
 {
     public CodeEngine? _codeEngine;
@@ -13,6 +13,7 @@ public partial class CodeRenderer : Control
     public int? _fontSize;
     public Font? _font;
     public Vector2? _charSize;
+    private Cursor? _cursor;
 
     private Rid _canvasId;
 
@@ -20,6 +21,49 @@ public partial class CodeRenderer : Control
     {
         _canvasId = RenderingServer.CanvasItemCreate();
         RenderingServer.CanvasItemSetParent(_canvasId, GetCanvasItem());
+    }
+
+    public override void _Ready()
+    {
+        _cursor = GetNode<Cursor>("%Cursor");
+    }
+
+    public void SetupListeners()
+    {
+        if (_cursor == null) return;
+        _cursor.BlockSize = _charSize!.Value;
+        _cursor.Size = _charSize.Value;
+
+        if (_codeEngine == null) return;
+        _codeEngine.OnContentChanged += (o, e) =>
+        {
+            RenderDocument(CancellationToken.None);
+        };
+
+        _codeEngine.OnContentChangedAndCursorMoved += (o, e) =>
+        {
+            RenderDocument(CancellationToken.None);
+        };
+
+        _codeEngine.OnModeChange += (o, e) => {
+            if (_cursor == null) return;
+
+            _cursor.SetCursorType(
+                _codeEngine.CurrentMode == ViMode.Insert ?
+                 CursorType.Line :
+                 CursorType.Block
+            );
+        };
+
+        _codeEngine.OnCursorPositionChanged += (o, e) => {
+          CallDeferred(CodeRenderer.MethodName.UpdateCursorPosition);
+        };
+    }
+
+    public override void _ExitTree()
+    {
+        base._ExitTree();
+        _textServer?.FreeRid(_canvasId);
     }
 
     public async Task OnLineParsedAsync(DocumentLine line, CancellationToken cancellation)
@@ -58,7 +102,8 @@ public partial class CodeRenderer : Control
         var tokens = _codeEngine.GetTokens();
         ResetCanvas(_canvasId);
         var tasks = tokens.Lines
-        .Select(l => Task.Run(() => {
+        .Select(l => Task.Run(() =>
+        {
             if (cancellationToken.IsCancellationRequested) return;
             RenderLine(l, cancellationToken);
         }))
@@ -78,27 +123,49 @@ public partial class CodeRenderer : Control
           TextServer.Direction.Ltr,
           TextServer.Orientation.Horizontal
         );
-            foreach (var token in line.Tokens)
+        foreach (var token in line.Tokens)
+        {
+            _textServer.ShapedTextAddString(textId, token.Content, _font.GetRids(), _fontSize.Value);
+
+            // TODO - cache colors
+            // TODO - get fg default color from theme
+            var tokenColor = token.Scopes.Length == 0 ?
+              Colors.White :
+              Color.FromString(token.Scopes[0].FgColor, Colors.White);
+
+            if (cancellationToken.IsCancellationRequested)
             {
-                _textServer.ShapedTextAddString(textId, token.Content, _font.GetRids(), _fontSize.Value);
-
-                // TODO - cache colors
-                // TODO - get fg default color from theme
-                var tokenColor = token.Scopes.Length == 0 ?
-                  Colors.White :
-                  Color.FromString(token.Scopes[0].FgColor, Colors.White);
-
-                if (cancellationToken.IsCancellationRequested) {
-                  _textServer.FreeRid(textId);
-                  return;
-                }
-                _textServer.ShapedTextDraw(textId, _canvasId, position, -1, -1, tokenColor);
-
-                var textSize = _textServer.ShapedTextGetSize(textId);
-                position = new Vector2(position.X + textSize.X, position.Y);
-
-                _textServer.ShapedTextClear(textId);
+                _textServer.FreeRid(textId);
+                return;
             }
+            _textServer.ShapedTextDraw(textId, _canvasId, position, -1, -1, tokenColor);
+
+            var textSize = _textServer.ShapedTextGetSize(textId);
+            position = new Vector2(position.X + textSize.X, position.Y);
+
+            _textServer.ShapedTextClear(textId);
+        }
         _textServer.FreeRid(textId);
+    }
+
+    public void UpdateCursorPosition()
+    {
+        if (_codeEngine == null) return;
+
+        var lineCount = _codeEngine.LineCount;
+
+        var newPosition = GetCharPosition(_codeEngine.CursorPosition);
+        _cursor?.MoveTo(newPosition);
+            //_cursor?.SetChar(newPostion.Value.character);
+    }
+
+    public Vector2 GetCharPosition(EditorPosition position)
+    {
+        var charSize = _charSize!.Value;
+        // top right
+        var y = (position.LineNumber * charSize.Y);
+        var x = (position.CharNumber * (charSize.X - 1));
+
+        return new Vector2(x, y) + GlobalPosition + new Vector2(0, 5);
     }
 }

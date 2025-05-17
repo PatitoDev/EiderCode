@@ -83,7 +83,10 @@ public static class ActionBuilder {
       );
 
       return new(){
-        Lines = lines,
+        Modification = new() {
+          Lines = lines,
+          StartPosition = cursorPosition
+        },
         ChangedMode = ViMode.Insert,
       };
     }

@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://cv4f003rjd8n2"]
+[gd_scene load_steps=4 format=3 uid="uid://cv4f003rjd8n2"]
 
 [ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://EiderCode.UI/Theme/CodeEditorTheme.tres" id="1_0wbee"]
 [ext_resource type="Script" uid="uid://bseh1qgojcqse" path="res://EiderCode.UI/Components/CodeRenderer/CodeRenderer.cs" id="2_shlmx"]
+[ext_resource type="PackedScene" uid="uid://dpmkkkfqc767f" path="res://EiderCode.UI/Components/Cursor/Cursor.tscn" id="3_64241"]
 
 [node name="CodeRenderer" type="Control"]
 layout_mode = 3
@@ -12,3 +13,11 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("1_0wbee")
 script = ExtResource("2_shlmx")
+
+[node name="Cursor" parent="." instance=ExtResource("3_64241")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 97.0
+offset_top = -157.0
+offset_right = 117.0
+offset_bottom = -122.0

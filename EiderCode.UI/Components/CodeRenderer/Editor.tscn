@@ -1,43 +1,38 @@
-[gd_scene load_steps=6 format=3 uid="uid://c7w6qkdc1kjmw"]
+[gd_scene load_steps=5 format=3 uid="uid://c7w6qkdc1kjmw"]
 
 [ext_resource type="Theme" uid="uid://jb4w7dxc3676" path="res://EiderCode.UI/Theme/CodeEditorTheme.tres" id="1_7foty"]
 [ext_resource type="Script" uid="uid://c37iop8erlvdj" path="res://EiderCode.UI/Components/CodeRenderer/Editor.cs" id="2_bie2n"]
-[ext_resource type="PackedScene" uid="uid://dpmkkkfqc767f" path="res://EiderCode.UI/Components/Cursor/Cursor.tscn" id="3_bie2n"]
 [ext_resource type="PackedScene" uid="uid://cdyx7ct46o4a7" path="res://EiderCode.UI/Components/CodeRenderer/GutterRenderer.tscn" id="3_cqh5o"]
 [ext_resource type="PackedScene" uid="uid://cv4f003rjd8n2" path="res://EiderCode.UI/Components/CodeRenderer/CodeRenderer.tscn" id="4_h5ky8"]
 
 [node name="Editor" type="MarginContainer"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+clip_children = 2
+offset_top = 20.0
+offset_right = 2000.0
+offset_bottom = 1000.0
 focus_mode = 2
 mouse_filter = 0
 mouse_default_cursor_shape = 1
 theme = ExtResource("1_7foty")
-theme_override_constants/margin_top = 20
 script = ExtResource("2_bie2n")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="BGRect" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+color = Color(0.117647, 0.117647, 0.180392, 1)
+
+[node name="asda" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_top = 20
+
+[node name="HBoxContainer" type="HBoxContainer" parent="asda"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="GutterRenderer" parent="HBoxContainer" instance=ExtResource("3_cqh5o")]
+[node name="GutterRenderer" parent="asda/HBoxContainer" instance=ExtResource("3_cqh5o")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="CodeRenderer" parent="HBoxContainer" instance=ExtResource("4_h5ky8")]
+[node name="CodeRenderer" parent="asda/HBoxContainer" instance=ExtResource("4_h5ky8")]
 unique_name_in_owner = true
 layout_mode = 2
-
-[node name="Control" type="Control" parent="."]
-layout_mode = 2
-
-[node name="Cursor" parent="Control" instance=ExtResource("3_bie2n")]
-unique_name_in_owner = true
-layout_mode = 2
-offset_left = 276.0
-offset_top = -1924.0
-offset_right = 370.0
-offset_bottom = -1816.0

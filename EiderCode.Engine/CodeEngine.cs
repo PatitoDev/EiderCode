@@ -24,6 +24,7 @@ public class CodeEngine
 
     public event EventHandler? OnModeChange;
     public event EventHandler? OnContentChanged;
+    public event EventHandler? OnContentChangedAndCursorMoved;
     public event EventHandler? OnCursorPositionChanged;
 
     private Tokenizer _tokenizer = new();
@@ -116,39 +117,7 @@ public class CodeEngine
 
     public Document GetTokens()
     {
-        var tokenizerResult = _tokenizer.Tokenize(FilePath, Content);
-
-        if (tokenizerResult == null)
-        {
-            var lines = Lines
-              .Select((contentLine, index) => new DocumentLine()
-              {
-                  Index = index,
-                  Tokens = [new CodeToken()
-                    {
-                      Content = contentLine,
-                      Scopes = Array.Empty<Scope>()
-                    }
-                  ]
-              })
-              .ToArray();
-
-            return new Document()
-            {
-                Lines = lines
-            };
-        }
-
-        return new Document()
-        {
-            Lines = tokenizerResult.Select((line, index) =>
-              new DocumentLine()
-              {
-                  Index = index,
-                  Tokens = line
-              })
-              .ToArray()
-        };
+        return _tokenizer.TokenizeDocument(FilePath, Content);
     }
 
     public void MoveCursorPosition(EditorPosition position)
@@ -266,19 +235,10 @@ public class CodeEngine
 
     private void HandleInsertMode(InputKey key)
     {
+        // TODO - use execute result model instead
         var result = InsertModeBuilder.HandleInsertMode(key, Lines, CursorPosition);
         if (result == null) return;
-
-        Lines = result.Lines;
-        UpdateTextFromLinesBuffer();
-        MoveCursorPosition(result.CursorPosition);
-    }
-
-    public void UpdateTextFromLinesBuffer()
-    {
-        var newText = string.Join("\n", Lines);
-        Content = newText;
-        OnContentChanged?.Invoke(this, new EventArgs());
+        HandleExecuteResult(result);
     }
 
     private void HandleExecuteResult(ExecuteResult result)
@@ -289,18 +249,32 @@ public class CodeEngine
             OnModeChange?.Invoke(this, EventArgs.Empty);
         }
 
-        if (result.NewCursorPosition != null)
+        if (result.NewCursorPosition.HasValue && result.Modification == null)
         {
-            CursorPosition = result.NewCursorPosition;
+            // only send cursor update if there are no modifications
+            CursorPosition = result.NewCursorPosition.Value;
             OnCursorPositionChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        if (result.Lines != null)
+        if (result.Modification != null)
         {
-            Lines = result.Lines;
-            UpdateTextFromLinesBuffer();
+            HandleModification(result.Modification);
+            if (result.NewCursorPosition != null) {
+                OnContentChangedAndCursorMoved?.Invoke(this, EventArgs.Empty);
+            } else {
+                OnContentChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         viStack = new();
+    }
+
+    private void HandleModification(Modification modification){
+        var newText = string.Join("\n", modification.Lines);
+        Content = newText;
+        Lines = modification.Lines;
+        LineCount = modification.Lines.Count();
+        var document = _tokenizer.TokenizeDocument(FilePath, Content);
+        DocumentLines = document.Lines.ToList();
     }
 }

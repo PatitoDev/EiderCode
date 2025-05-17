@@ -26,7 +26,7 @@ public class Tokenizer
         _options = new RegistryOptions(ThemeName.Dark);
         _registry = new Registry(_options);
 
-        var draculaThemeJson = GD.Load<Json>("res://EiderCode.Engine/CodeEditorThemes/catppuccin_macchiato.json");
+        var draculaThemeJson = GD.Load<Json>("res://EiderCode.Engine/CodeEditorThemes/catppuccin_mocha.json");
         var js = Json.Stringify(draculaThemeJson.Data);
 
         var bytes = Encoding.UTF8.GetBytes(js);
@@ -60,7 +60,6 @@ public class Tokenizer
                 }]
             }, null);
         }
-        var theme = _registry.GetTheme();
         var result = _grammar.TokenizeLine(line, stateStack, TimeSpan.MaxValue);
 
         var documentLine = new DocumentLine() {
@@ -70,7 +69,7 @@ public class Tokenizer
             .Select(token => {
                 var content = line.Substr(token.StartIndex, token.Length);
                 // TODO - possible optimization here
-                var themeRules = theme.Match(token.Scopes);
+                var themeRules = Theme.Match(token.Scopes);
 
                 return new CodeToken()
                 {
@@ -78,8 +77,8 @@ public class Tokenizer
                     Scopes = themeRules.Select(rule => (
                       new Scope()
                       {
-                          BgColor = theme.GetColor(rule.background),
-                          FgColor = theme.GetColor(rule.foreground),
+                          BgColor = Theme.GetColor(rule.background),
+                          FgColor = Theme.GetColor(rule.foreground),
                           Name = rule.name
                       })).ToArray()
                 };
@@ -90,54 +89,31 @@ public class Tokenizer
         return (documentLine, result.RuleStack);
     }
 
-    public CodeToken[][]? Tokenize(
-        string fileName,
-        string fileContent
-    )
+    public Document TokenizeDocument(string fileName, string fileContent)
     {
-        var scopeByExtension = _options.GetScopeByExtension(Path.GetExtension(fileName));
-        var grammar = _registry.LoadGrammar(scopeByExtension);
-        if (grammar == null) return null;
-
-        var theme = _registry.GetTheme();
-
-        IStateStack? ruleStack = null;
-
-        var fileLines = fileContent.Split("\n");
-
-        var parsedTokens = new List<CodeToken[]>() { };
-
-        foreach (var line in fileLines)
-        {
-            var lineTokens = new List<CodeToken>() { };
-
-            var tokenizeResult = grammar.TokenizeLine(line, ruleStack, System.TimeSpan.MaxValue);
-            ruleStack = tokenizeResult.RuleStack;
-
-            foreach (var token in tokenizeResult.Tokens)
-            {
-                var content = line.Substr(token.StartIndex, token.Length);
-                var themeRules = theme.Match(token.Scopes);
-
-                var codeToken = new CodeToken()
-                {
-                    Content = content,
-                    Scopes = themeRules.Select(rule => (
-                      new Scope()
-                      {
-                          BgColor = theme.GetColor(rule.background),
-                          FgColor = theme.GetColor(rule.foreground),
-                          Name = rule.name
-                      }
-                    ))
-                  .ToArray()
-                };
-
-                lineTokens.Add(codeToken);
-            }
-            parsedTokens.Add(lineTokens.ToArray());
+        if (_grammar == null) {
+            // no syntax found so return document with no syntax
+            return new() {
+                Lines = Array.Empty<DocumentLine>()
+            };
         }
 
-        return parsedTokens.ToArray();
+        IStateStack? stack = null;
+
+        var documentLines = new List<DocumentLine>();
+        var lines = fileContent.Split("\n");
+        var lineIndex = 0;
+
+        foreach (var line in lines)
+        {
+            var result = TokenizeLine(line, lineIndex, stack);
+            stack = result.ruleStack;
+            documentLines.Add(result.documentLine);
+            lineIndex += 1;
+        }
+
+        return new(){
+            Lines = documentLines.ToArray()
+        };
     }
 }

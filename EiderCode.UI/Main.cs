@@ -3,7 +3,7 @@ using System;
 
 namespace EiderCode.UI;
 
-public partial class Main : Control
+public partial class Main : PanelContainer
 {
     private FileExplorer? explorer;
 
@@ -13,6 +13,7 @@ public partial class Main : Control
 
         // handle combination keys like accents
         GetWindow().SetImeActive(true);
+
         //var codeEditor = GetNode<CodeEditor>("%CodeEditor");
         var editor = GetNode<Editor>("%Editor");
 

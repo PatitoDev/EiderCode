@@ -5,7 +5,7 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o6anj"]
 shader = ExtResource("1_o6anj")
-shader_parameter/tolerance = 1.0
+shader_parameter/tolerance = 0.7
 shader_parameter/fg = Color(0.117647, 0.117647, 0.180392, 1)
 shader_parameter/bg = Color(1, 1, 1, 1)
 

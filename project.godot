@@ -13,19 +13,22 @@ config_version=5
 config/name="Editor"
 run/main_scene="uid://b8cplu7lyibjj"
 config/features=PackedStringArray("4.4", "C#", "GL Compatibility")
+run/max_fps=120
+boot_splash/bg_color=Color(0.14, 0.14, 0.14, 0)
+boot_splash/show_image=false
+boot_splash/fullsize=false
 config/icon="res://icon.svg"
-
-[debug]
-
-settings/stdout/print_fps=true
 
 [display]
 
 window/size/viewport_width=2000
 window/size/viewport_height=1000
+window/size/borderless=true
+window/size/transparent=true
 window/energy_saving/keep_screen_on=false
 window/subwindows/embed_subwindows=false
 window/stretch/scale_mode="integer"
+window/per_pixel_transparency/allowed=true
 
 [dotnet]
 

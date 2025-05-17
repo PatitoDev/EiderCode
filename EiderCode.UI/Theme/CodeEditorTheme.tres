@@ -1,7 +1,7 @@
 [gd_resource type="Theme" load_steps=6 format=3 uid="uid://jb4w7dxc3676"]
 
 [sub_resource type="SystemFont" id="SystemFont_7lris"]
-font_names = PackedStringArray("SF Mono")
+font_names = PackedStringArray("Monospace", "SF Mono")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l6h5u"]
 content_margin_top = 1.0
@@ -22,7 +22,7 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
 [sub_resource type="SystemFont" id="SystemFont_gqaum"]
-font_names = PackedStringArray("SF Mono")
+font_names = PackedStringArray("SF Mono", "Monospace")
 
 [resource]
 default_font = SubResource("SystemFont_gqaum")
