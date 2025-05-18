@@ -24,7 +24,7 @@ public partial class Cursor : Panel
     var t = GetTree().CreateTween();
     t.SetTrans(Tween.TransitionType.Spring);
     t.SetEase(Tween.EaseType.InOut);
-    t.TweenProperty(this, "global_position", position, 0.05);
+    t.TweenProperty(this, "position", position - new Vector2(0, Size.Y), 0.05);
   }
 
   public void SetCursorType(CursorType cursorType)
@@ -40,5 +40,12 @@ public partial class Cursor : Panel
       t.TweenProperty(this, "size:x", BlockSize.X, 0.10);
       t.TweenProperty(this, "size:y", BlockSize.Y, 0.10);
     }
+  }
+
+  public void UpdateCursorSizeAndBounds(Vector2 newPosition, Vector2 size)
+  {
+    MoveTo(newPosition + new Vector2(0, 5));
+    BlockSize = size;
+    SetCursorType(_cursorType); // force re-render
   }
 }

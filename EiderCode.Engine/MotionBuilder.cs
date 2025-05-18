@@ -194,7 +194,7 @@ public static class MotionBuilder
         LineNumber = cursorPosition.LineNumber,
       },
       End = new(){
-        CharNumber = Math.Min(cursorPosition.CharNumber + 1, currentLineLength -1),
+        CharNumber = Math.Min(cursorPosition.CharNumber + 1, currentLineLength),
         LineNumber = cursorPosition.LineNumber
       },
       MotionStack = key.KeyCode.ToString()

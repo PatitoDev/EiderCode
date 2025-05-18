@@ -22,6 +22,8 @@ public class Tokenizer
     private RegistryOptions _options;
     public TextMateSharp.Themes.Theme Theme { get; private set; }
 
+    public Dictionary<string, Color> _colorMap = new();
+
     public Tokenizer(){
         _options = new RegistryOptions(ThemeName.Dark);
         _registry = new Registry(_options);
@@ -36,6 +38,22 @@ public class Tokenizer
         var themeRaw = ThemeReader.ReadThemeSync(streamReader);
         _registry.SetTheme(themeRaw);
         Theme = _registry.GetTheme();
+    }
+
+    public Color? GetColorFromStringInCache(int? scopeId)
+    {
+        if (!scopeId.HasValue) return null;
+
+        var colorString = Theme.GetColor(scopeId.Value);
+        if (string.IsNullOrEmpty(colorString)) return null;
+
+        if (_colorMap.TryGetValue(colorString, out var colorFromCache)){
+            return colorFromCache;
+        }
+
+        var color = Color.FromString(colorString, Colors.White);
+        _colorMap[colorString] = color;
+        return color;
     }
 
     public void LoadGrammar(string fileName)
@@ -56,6 +74,8 @@ public class Tokenizer
                 Index = index,
                 Tokens = [new CodeToken(){
                     Content = line,
+                    FgColor = Colors.White, // TODO - set default colot from theme
+                    BgColor = Colors.White, // TODO - set default colot from theme
                     Scopes = Array.Empty<Scope>()
                 }]
             }, null);
@@ -70,10 +90,13 @@ public class Tokenizer
                 var content = line.Substr(token.StartIndex, token.Length);
                 // TODO - possible optimization here
                 var themeRules = Theme.Match(token.Scopes);
+                var firstRule = themeRules.FirstOrDefault();
 
                 return new CodeToken()
                 {
                     Content = content,
+                    FgColor = GetColorFromStringInCache(firstRule?.foreground),
+                    BgColor = GetColorFromStringInCache(firstRule?.background),
                     Scopes = themeRules.Select(rule => (
                       new Scope()
                       {

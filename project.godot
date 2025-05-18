@@ -14,9 +14,10 @@ config/name="Editor"
 run/main_scene="uid://b8cplu7lyibjj"
 config/features=PackedStringArray("4.4", "C#", "GL Compatibility")
 run/max_fps=120
-boot_splash/bg_color=Color(0.14, 0.14, 0.14, 0)
+boot_splash/bg_color=Color(0.0705882, 0.0705882, 0.109804, 1)
 boot_splash/show_image=false
 boot_splash/fullsize=false
+boot_splash/use_filter=false
 config/icon="res://icon.svg"
 
 [display]

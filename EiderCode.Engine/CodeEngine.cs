@@ -130,7 +130,7 @@ public class CodeEngine
     {
         var targetLineNumber = Math.Clamp(position.LineNumber, 0, Lines.Count - 1);
         var targetChar = Math.Clamp(position.CharNumber, 0,
-          Math.Max(Lines[targetLineNumber]!.Length - 1, 0)
+          Math.Max(Lines[targetLineNumber]!.Length, 0)
         );
 
         CursorPosition = new EditorPosition()
