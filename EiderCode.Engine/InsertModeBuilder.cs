@@ -29,10 +29,10 @@ public static class InsertModeBuilder
 
           lines.Insert(cursorPosition.LineNumber + 1, contentToMoveDown);
           return new(){
-            NewCursorPosition = new(){
-              CharNumber = 0,
-              LineNumber = cursorPosition.LineNumber + 1
-            },
+            NewCursorPosition = new(
+              cursorPosition.LineNumber + 1,
+              0
+            ),
             Modification = new() {
               Lines = lines,
               StartPosition = cursorPosition,
@@ -54,28 +54,34 @@ public static class InsertModeBuilder
             lines[cursorPosition.LineNumber - 1] += currentLine;
 
             return new() {
-              NewCursorPosition = new() {
-                CharNumber = previousLength, // +1 to stay on the new char
-                LineNumber = cursorPosition.LineNumber - 1
-              },
+              NewCursorPosition = new(
+                cursorPosition.LineNumber - 1,
+                previousLength // +1 to stay on the new char
+              ),
               Modification = new()
               {
                 Lines = lines,
-                StartPosition = new(0, cursorPosition.LineNumber - 1)
+                StartPosition = new(
+                  cursorPosition.LineNumber - 1,
+                  0
+                )
               }
             };
           }
 
           lines[cursorPosition.LineNumber] = lines[cursorPosition.LineNumber].Remove(cursorPosition.CharNumber - 1, 1);
           return new(){
-            NewCursorPosition = new() {
-              CharNumber = cursorPosition.CharNumber - 1,
-              LineNumber = cursorPosition.LineNumber
-            },
+            NewCursorPosition = new(
+              cursorPosition.LineNumber,
+              cursorPosition.CharNumber - 1
+            ),
             Modification = new()
             {
               Lines = lines,
-              StartPosition = new(cursorPosition.CharNumber - 1, cursorPosition.LineNumber)
+              StartPosition = new(
+                cursorPosition.LineNumber,
+                cursorPosition.CharNumber - 1
+              )
             }
           };
         }
@@ -86,8 +92,8 @@ public static class InsertModeBuilder
           .Insert(cursorPosition.CharNumber, printableChar.ToString());
 
         var newCursorPosition = new EditorPosition(
-          cursorPosition.CharNumber + 1,
-          cursorPosition.LineNumber
+          cursorPosition.LineNumber,
+          cursorPosition.CharNumber + 1
         );
 
         return new(){

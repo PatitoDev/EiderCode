@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EiderCode.UI;
+using System.Diagnostics;
 
 public partial class CodeRenderer : Control
 {
@@ -37,12 +38,26 @@ public partial class CodeRenderer : Control
         if (_codeEngine == null) return;
         _codeEngine.OnContentChanged += (o, e) =>
         {
-            RenderDocument(CancellationToken.None);
+            //RenderDocument(CancellationToken.None);
+            GD.Print("content chagned");
+            QueueRedraw();
         };
 
         _codeEngine.OnContentChangedAndCursorMoved += (o, e) =>
         {
-            RenderDocument(CancellationToken.None);
+            GD.Print("content chagned and cursor");
+            //RenderDocument(CancellationToken.None);
+            QueueRedraw();
+            CallDeferred(CodeRenderer.MethodName.UpdateCursorPosition);
+        };
+
+        _codeEngine.OnLineParsed += (o,e) => {
+            CallDeferred(CodeRenderer.MethodName.QueueRedraw);
+        };
+
+        _codeEngine.OnFinishedParsing += (o,e) =>
+        {
+            //CallDeferred(CodeRenderer.MethodName.QueueRedraw);
         };
 
         _codeEngine.OnModeChange += (o, e) => {
@@ -66,6 +81,19 @@ public partial class CodeRenderer : Control
         _textServer?.FreeRid(_canvasId);
     }
 
+    public override void _Draw()
+    {
+        base._Draw();
+        if (_codeEngine == null) return;
+
+        var timer = new Stopwatch();
+        var documentLines = _codeEngine.GetTokens().Lines;
+        timer.Start();
+        RenderDocument();
+        GD.Print("Rendered document in: ", timer.ElapsedMilliseconds);
+        timer.Stop();
+    }
+
     public async Task OnLineParsedAsync(DocumentLine line, CancellationToken cancellation)
     {
         await Task.Run(() =>
@@ -87,7 +115,8 @@ public partial class CodeRenderer : Control
 
     public void OnFileOpen()
     {
-        RenderingServer.CanvasItemClear(_canvasId);
+        GD.Print("Reset canvas");
+        ResetCanvas(_canvasId);
     }
 
     public void ResetCanvas(Rid canvasIdToDelete)
@@ -95,19 +124,15 @@ public partial class CodeRenderer : Control
         RenderingServer.CanvasItemClear(canvasIdToDelete);
     }
 
-    public void RenderDocument(CancellationToken cancellationToken)
+    public void RenderDocument()
     {
         if (_codeEngine == null) return;
 
         var tokens = _codeEngine.GetTokens();
         ResetCanvas(_canvasId);
-        var tasks = tokens.Lines
-        .Select(l => Task.Run(() =>
-        {
-            if (cancellationToken.IsCancellationRequested) return;
-            RenderLine(l, cancellationToken);
-        }))
-        .ToList();
+        foreach (var l in tokens.Lines) {
+            RenderLine(l, CancellationToken.None);
+        }
     }
 
     private void RenderLine(DocumentLine line, CancellationToken cancellationToken)
@@ -164,7 +189,7 @@ public partial class CodeRenderer : Control
         var charSize = _charSize!.Value;
         // top right
         var y = (position.LineNumber * charSize.Y);
-        var x = (position.CharNumber * (charSize.X - 1));
+        var x = (position.CharNumber * (charSize.X));
 
         return new Vector2(x, y) + GlobalPosition + new Vector2(0, 5);
     }

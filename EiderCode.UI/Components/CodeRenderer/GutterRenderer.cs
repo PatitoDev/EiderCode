@@ -1,8 +1,6 @@
 using EiderCode.Engine;
 using EiderCode.Engine.Models;
 using Godot;
-using System.Threading;
-using System.Threading.Tasks;
 using System;
 
 public partial class GutterRenderer : Control
@@ -23,7 +21,7 @@ public partial class GutterRenderer : Control
         RenderingServer.CanvasItemSetParent(_canvasId, GetCanvasItem());
     }
 
-    public void initListeners()
+    public void SetupListeners()
     {
       if (_codeEngine == null) return;
       _codeEngine.OnFinishedParsing += (o, ev) => {
@@ -36,21 +34,21 @@ public partial class GutterRenderer : Control
       _codeEngine.OnCursorPositionChanged += (o, ev) => {
           CallDeferred(GutterRenderer.MethodName.RenderGutter);
       };
+
+      _codeEngine.OnLineParsed += (o, ev) =>
+      {
+          var line = ev.Line;
+          OnLineParsedAsync(line);
+      };
     }
 
-    public async Task OnLineParsedAsync(DocumentLine line, CancellationToken cancellation)
+    public void OnLineParsedAsync(DocumentLine line)
     {
-        await Task.Run(() =>
-        {
-            if (!_charSize.HasValue) return;
-
-            if (cancellation.IsCancellationRequested) return;
-            var lineWidth = line.Index.ToString().Length;
-            if (lineWidth > _maxLineCountLength) {
-              _maxLineCountLength = lineWidth;
-            }
-            RenderLine(line, _canvasId, cancellation);
-        });
+        var lineWidth = line.Index.ToString().Length;
+        if (lineWidth > _maxLineCountLength) {
+          _maxLineCountLength = lineWidth;
+        }
+        RenderLine(line, _canvasId);
     }
 
     public void UpdateContainerSize()
@@ -85,11 +83,11 @@ public partial class GutterRenderer : Control
       RenderingServer.CanvasItemClear(_canvasId);
 
       foreach (var line in _codeEngine.DocumentLines.ToArray()){
-        RenderLine(line, _canvasId, CancellationToken.None);
+        RenderLine(line, _canvasId);
       }
     }
 
-    private void RenderLine(DocumentLine line, Rid canvasId, CancellationToken cancellationToken)
+    private void RenderLine(DocumentLine line, Rid canvasId)
     {
         if (_charSize == null) return;
         if (_textServer == null) return;
@@ -111,11 +109,6 @@ public partial class GutterRenderer : Control
         */
 
         _textServer.ShapedTextAddString(textId, line.Index.ToString(), _font.GetRids(), _fontSize.Value);
-        if (cancellationToken.IsCancellationRequested)
-        {
-          _textServer.FreeRid(textId);
-          return;
-        }
 
         var color = _codeEngine!.GetGuiColor(GuiThemeKeys.EditorFg);
         var isOnLine = _codeEngine!.CursorPosition.LineNumber == line.Index;
@@ -128,7 +121,6 @@ public partial class GutterRenderer : Control
           (_charSize.Value.Y * (line.Index + 1)
         ));
 
-        if (!canvasId.IsValid) return;
         _textServer.ShapedTextDraw(textId, canvasId, position, -1, -1, color);
         var textSize = _textServer.ShapedTextGetSize(textId);
 

@@ -51,8 +51,8 @@ public partial class Editor : MarginContainer
         _gutterRenderer._charSize = _charSize;
         _gutterRenderer._codeEngine = _codeEngine;
         _gutterRenderer._textServer = _textServer;
-        _gutterRenderer.initListeners();
 
+        _gutterRenderer.SetupListeners();
         _codeRenderer.SetupListeners();
     }
 
@@ -97,18 +97,7 @@ public partial class Editor : MarginContainer
         GrabFocus();
         _codeRenderer!.UpdateCursorPosition();
 
-        _codeEngine.ClearOnLineParsedEvent();
-
-        _codeEngine.OnLineParsed += async (o, ev) =>
-        {
-            if (_gutterRenderer == null) return;
-            if (_codeRenderer == null) return;
-            var line = ev.Line;
-            if (cancellationToken.IsCancellationRequested) return;
-            await _codeRenderer.OnLineParsedAsync(line, cancellationToken);
-            if (cancellationToken.IsCancellationRequested) return;
-            await _gutterRenderer.OnLineParsedAsync(line, cancellationToken);
-        };
+        //_codeEngine.ClearOnLineParsedEvent();
 
         Task.Run(async () =>
         {

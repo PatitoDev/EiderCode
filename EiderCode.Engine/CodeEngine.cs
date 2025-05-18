@@ -68,6 +68,7 @@ public class CodeEngine
 
     public async Task<Document> OpenFileAsync(string filePath, CancellationToken cancellationToken)
     {
+        Content = "";
         DocumentLines = new();
         viStack = new();
         CursorPosition = new EditorPosition()
@@ -91,6 +92,7 @@ public class CodeEngine
             var line = await streamReader.ReadLineAsync(cancellationToken);
             if (cancellationToken.IsCancellationRequested) return new Document() { Lines = Array.Empty<DocumentLine>() };
             if (line == null) break; // handle done reading
+            Content += line + "\n";
             Lines.Add(line);
             var (DocumentLine, newStack) = _tokenizer.TokenizeLine(line, LineCount, stack);
             if (cancellationToken.IsCancellationRequested) return new Document() { Lines = Array.Empty<DocumentLine>() };
@@ -117,7 +119,11 @@ public class CodeEngine
 
     public Document GetTokens()
     {
-        return _tokenizer.TokenizeDocument(FilePath, Content);
+        // should duplicate?
+        return new Document(){
+            Lines = DocumentLines.ToArray()
+        };
+        //_tokenizer.TokenizeDocument(FilePath, Content);
     }
 
     public void MoveCursorPosition(EditorPosition position)
@@ -145,10 +151,12 @@ public class CodeEngine
 
     public void HandleKeyPress(InputKey key)
     {
+        /*
         GD.Print("Code: ", key.KeyCode);
         GD.Print("Unicode: ", key.Unicode);
         GD.Print("IsShifted: ", key.IsShiftPressed);
         GD.Print("IsControlPressed: ", key.IsControlPressed);
+        */
 
         if (key.KeyCode == Key.Escape)
         {
@@ -259,7 +267,8 @@ public class CodeEngine
         if (result.Modification != null)
         {
             HandleModification(result.Modification);
-            if (result.NewCursorPosition != null) {
+            if (result.NewCursorPosition.HasValue) {
+                CursorPosition = result.NewCursorPosition.Value;
                 OnContentChangedAndCursorMoved?.Invoke(this, EventArgs.Empty);
             } else {
                 OnContentChanged?.Invoke(this, EventArgs.Empty);
