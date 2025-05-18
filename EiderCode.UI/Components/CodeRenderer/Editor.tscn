@@ -18,6 +18,7 @@ script = ExtResource("2_bie2n")
 
 [node name="BGRect" type="ColorRect" parent="."]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 color = Color(0.117647, 0.117647, 0.180392, 1)
 

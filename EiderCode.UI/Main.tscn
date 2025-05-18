@@ -1,30 +1,40 @@
-[gd_scene load_steps=6 format=3 uid="uid://b8cplu7lyibjj"]
+[gd_scene load_steps=9 format=3 uid="uid://b8cplu7lyibjj"]
 
 [ext_resource type="Script" uid="uid://bfk5svwpqopem" path="res://EiderCode.UI/Main.cs" id="1_glv2v"]
+[ext_resource type="PackedScene" uid="uid://wanmabttla28" path="res://EiderCode.UI/Components/TitleBar/TitleBar.tscn" id="2_b21aq"]
 [ext_resource type="PackedScene" uid="uid://b2vppnh6ixp8b" path="res://EiderCode.UI/Components/FileExplorer/FileExplorer.tscn" id="2_r0du0"]
 [ext_resource type="PackedScene" uid="uid://c7w6qkdc1kjmw" path="res://EiderCode.UI/Components/CodeRenderer/Editor.tscn" id="3_cpyu5"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cpyu5"]
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_b21aq"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cg06y"]
+bg_color = Color(0.247059, 0.247059, 0.352941, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.24577, 0.245936, 0.352309, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_umvht"]
 bg_color = Color(0.0705882, 0.0705882, 0.109804, 1)
 border_width_left = 5
-border_width_top = 5
 border_width_right = 5
-border_width_bottom = 5
+border_width_bottom = 10
 border_color = Color(0.0705882, 0.0705882, 0.109804, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b21aq"]
-corner_radius_top_left = 50
-corner_radius_top_right = 50
-corner_radius_bottom_right = 50
-corner_radius_bottom_left = 50
+bg_color = Color(0.117647, 0.117647, 0.180392, 1)
+border_color = Color(0.0705882, 0.0705882, 0.109804, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [node name="Main" type="PanelContainer"]
 anchors_preset = 15
@@ -32,38 +42,44 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_cpyu5")
+theme_override_styles/panel = SubResource("StyleBoxEmpty_b21aq")
 script = ExtResource("1_glv2v")
 
-[node name="HSplitContainer" type="HSplitContainer" parent="."]
+[node name="Border" type="PanelContainer" parent="."]
 layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_cg06y")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Border"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TitleBar" parent="Border/VBoxContainer" instance=ExtResource("2_b21aq")]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="Border/VBoxContainer"]
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_umvht")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="Border/VBoxContainer/PanelContainer"]
+layout_mode = 2
+size_flags_vertical = 3
 split_offset = 300
 dragger_visibility = 2
 
-[node name="FileExplorer" parent="HSplitContainer" instance=ExtResource("2_r0du0")]
+[node name="FileExplorer" parent="Border/VBoxContainer/PanelContainer/HSplitContainer" instance=ExtResource("2_r0du0")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="HSplitContainer"]
+[node name="ScrollContainer" type="ScrollContainer" parent="Border/VBoxContainer/PanelContainer/HSplitContainer"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_b21aq")
 vertical_scroll_mode = 2
 
-[node name="Editor" parent="HSplitContainer/ScrollContainer" instance=ExtResource("3_cpyu5")]
+[node name="Editor" parent="Border/VBoxContainer/PanelContainer/HSplitContainer/ScrollContainer" instance=ExtResource("3_cpyu5")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="VSplitContainer" type="VSplitContainer" parent="HSplitContainer"]
-layout_mode = 2
-split_offset = 400
-collapsed = true
-dragger_visibility = 2
-
-[node name="Control2" type="Control" parent="HSplitContainer/VSplitContainer"]
-layout_mode = 2
-
-[node name="Control" type="Control" parent="HSplitContainer/VSplitContainer"]
-layout_mode = 2
 size_flags_vertical = 3

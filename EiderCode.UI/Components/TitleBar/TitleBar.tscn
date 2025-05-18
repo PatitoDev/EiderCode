@@ -1,0 +1,101 @@
+[gd_scene load_steps=12 format=3 uid="uid://wanmabttla28"]
+
+[ext_resource type="Script" uid="uid://cas2dc76kacq7" path="res://EiderCode.UI/Components/TitleBar/TitleBar.cs" id="1_inwpt"]
+[ext_resource type="Texture2D" uid="uid://cvnmdcdvr8d25" path="res://EiderCode.UI/Icons/UI/Minimize.svg" id="2_ds0lu"]
+[ext_resource type="Texture2D" uid="uid://cgulvi2khc8b7" path="res://EiderCode.UI/Icons/UI/close.svg" id="2_pmlds"]
+[ext_resource type="Texture2D" uid="uid://bqyerx6f1jf8r" path="res://EiderCode.UI/Icons/UI/Enlarge.svg" id="3_afwvo"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_inwpt"]
+bg_color = Color(0.0705882, 0.0705882, 0.109804, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ds0lu"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0, 0, 0, 0.253)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ds0lu"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_afwvo"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0, 0, 0, 0.253)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_afwvo"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yuyc0"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0, 0, 0, 0.253)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_yuyc0"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[node name="TitleBar" type="PanelContainer"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 40.0
+grow_horizontal = 2
+size_flags_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_inwpt")
+script = ExtResource("1_inwpt")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="FlowContainer" type="FlowContainer" parent="."]
+layout_mode = 2
+theme_override_constants/h_separation = 0
+alignment = 2
+
+[node name="MinimizeBtn" type="Button" parent="FlowContainer"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/hover = SubResource("StyleBoxFlat_ds0lu")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ds0lu")
+theme_override_styles/normal = SubResource("StyleBoxEmpty_ds0lu")
+icon = ExtResource("2_ds0lu")
+icon_alignment = 1
+expand_icon = true
+
+[node name="MaximizeBtn" type="Button" parent="FlowContainer"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/hover = SubResource("StyleBoxFlat_afwvo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_afwvo")
+theme_override_styles/normal = SubResource("StyleBoxEmpty_afwvo")
+icon = ExtResource("3_afwvo")
+icon_alignment = 1
+expand_icon = true
+
+[node name="CloseBtn" type="Button" parent="FlowContainer"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+focus_mode = 0
+theme_override_constants/outline_size = 0
+theme_override_styles/hover = SubResource("StyleBoxFlat_yuyc0")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yuyc0")
+theme_override_styles/normal = SubResource("StyleBoxEmpty_yuyc0")
+icon = ExtResource("2_pmlds")
+icon_alignment = 1
+expand_icon = true
