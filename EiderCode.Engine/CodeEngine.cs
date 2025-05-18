@@ -32,6 +32,7 @@ public class CodeEngine
     public EditorPosition CursorPosition { get; private set; }
     public string Content { get; private set; } = "";
     public List<string> Lines = new List<string>();
+    public List<string> OriginalLines = new List<string>();
     public List<DocumentLine> DocumentLines;
     public int LineCount { get; private set; } = 0;
     public string FilePath { get; private set; } = "";
@@ -77,6 +78,7 @@ public class CodeEngine
             CharNumber = 0
         };
         Lines = new List<string>();
+        OriginalLines = new List<string>();
         FilePath = filePath;
 
         //Lines = content.Split("\n").ToList();
@@ -94,6 +96,7 @@ public class CodeEngine
             if (line == null) break; // handle done reading
             Content += line + "\n";
             Lines.Add(line);
+            OriginalLines.Add(line);
             var (DocumentLine, newStack) = _tokenizer.TokenizeLine(line, LineCount, stack);
             if (cancellationToken.IsCancellationRequested) return new Document() { Lines = Array.Empty<DocumentLine>() };
 
@@ -120,7 +123,8 @@ public class CodeEngine
     public Document GetTokens()
     {
         // should duplicate?
-        return new Document(){
+        return new Document()
+        {
             Lines = DocumentLines.ToArray()
         };
         //_tokenizer.TokenizeDocument(FilePath, Content);
@@ -267,10 +271,13 @@ public class CodeEngine
         if (result.Modification != null)
         {
             HandleModification(result.Modification);
-            if (result.NewCursorPosition.HasValue) {
+            if (result.NewCursorPosition.HasValue)
+            {
                 CursorPosition = result.NewCursorPosition.Value;
                 OnContentChangedAndCursorMoved?.Invoke(this, EventArgs.Empty);
-            } else {
+            }
+            else
+            {
                 OnContentChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -278,12 +285,41 @@ public class CodeEngine
         viStack = new();
     }
 
-    private void HandleModification(Modification modification){
+    private void HandleModification(Modification modification)
+    {
         var newText = string.Join("\n", modification.Lines);
         Content = newText;
         Lines = modification.Lines;
         LineCount = modification.Lines.Count();
         var document = _tokenizer.TokenizeDocument(FilePath, Content);
+
+        var lineIndex = 0;
+        var startIndexOfLinesToCompare = 0;
+
+        foreach (var line in modification.Lines)
+        {
+            if (startIndexOfLinesToCompare >= OriginalLines.Count - 1) {
+                document.Lines[lineIndex].Status = DocumentLineStatus.Modified;
+            }
+
+            var linesComparedCount = 0;
+            foreach (var lineToCompare in OriginalLines.Skip(startIndexOfLinesToCompare))
+            {
+                var hasChanged = lineToCompare != line;
+
+                if (!hasChanged) {
+                    startIndexOfLinesToCompare += linesComparedCount + 1;
+                    document.Lines[lineIndex].Status = DocumentLineStatus.UnModified;
+                    break;
+                }
+
+                document.Lines[lineIndex].Status = DocumentLineStatus.Modified;
+                linesComparedCount += 1;
+            }
+
+            lineIndex += 1;
+        }
+
         DocumentLines = document.Lines.ToList();
     }
 }
