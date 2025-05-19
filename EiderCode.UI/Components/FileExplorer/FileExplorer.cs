@@ -9,13 +9,28 @@ using System.Threading.Tasks;
 
 namespace EiderCode.UI;
 
-public enum ItemMetadataKeys {
+public enum ItemMetadataKeys
+{
     IsFolder,
     Name,
     RelativePath
 }
 
+public record FileTreeItem
+{
+    public required bool IsOpen { get; set; }
+    public required bool IsFolder { get; set; }
+    public required bool HasAccess { get; set; }
+    public required string Name { get; set; }
+    public required string Path { get; set; }
+    public required int Depth { get; set; }
+    public required FileStatusEnum GitStatus { get; set; }
+    public required FileSystemItem TreeObject { get; set; }
+}
 
+// TODO
+// * fix text alignment on different font sizes and paddings
+// * fix git icons rendering on top of file names. File names should be trimmed
 public partial class FileExplorer : Control
 {
     [Signal]
@@ -24,295 +39,431 @@ public partial class FileExplorer : Control
     private string testDirPath = "D:/DevStream/ElPatoDraw";
     private string testTargetFolder = "Front UI";
 
-    private Tree? treeNode;
+    private FileSystemWatcher _fileSystemWatcher = new();
     private FileIconProvider _fileIconProvider = new FileIconProvider();
+
+    // settings
     private int iconRelativeSize = 5;
     private int fontSize = 20;
+    private int itemDepthOffset = 25;
+    private int itemPadding = 5;
+    private int itemMargin = 10;
 
-    private FileSystemWatcher _fileSystemWatcher = new();
-    //private GitIntegration _gitIntegration;
+    private TextServer _textServer;
+    private Font _font;
+    private Rid _canvasId;
 
-    private IReadOnlyList<FileStatus> _fileStatuses = new List<FileStatus>();
+    // what we are rendering in the exact order they appear on the ui
+    // this is a flat structure
+    private List<FileTreeItem> _treeItems = new();
+    private FileSystemItem? _rootFolder;
 
-    public FileExplorer() {
-        /*
+    private CompressedTexture2D? _triangleIconOpen;
+    private CompressedTexture2D? _triangleIconClose;
+
+    private GitIntegration _gitIntegration;
+    private Dictionary<string, FileStatus> _fileStatuses = new();
+
+    private int? _itemIndexHovered = null;
+    private string? _itemPathSelected = null;
+
+    public FileExplorer()
+    {
+        _font = Theme.DefaultFont;
+
+        Task.Run(() =>
+        {
+            LoadAsync();
+            CallDeferred(FileExplorer.MethodName.QueueRedraw);
+        });
+
+        _textServer = TextServerManager.GetPrimaryInterface();
+
+        _canvasId = RenderingServer.CanvasItemCreate();
+        RenderingServer.CanvasItemSetParent(_canvasId, GetCanvasItem());
+
         _gitIntegration = new(Path.Combine(testTargetFolder, testDirPath));
-        Task.Run(async () => {
-            try {
-            _fileStatuses = await _gitIntegration
-                .GetStatus(System.Threading.CancellationToken.None);
-            CallDeferred(FileExplorer.MethodName.RenderGitStatus);
-            } catch (Exception ex) {
+        Task.Run(async () =>
+        {
+            try
+            {
+                _fileStatuses = await _gitIntegration
+                    .GetStatus(System.Threading.CancellationToken.None);
+                CallDeferred(FileExplorer.MethodName.QueueRedraw);
+            }
+            catch (Exception ex)
+            {
                 GD.Print(ex);
             }
         });
-        */
     }
 
-    public override void _Ready()
+    private bool HasLoaded = false;
+
+    public void LoadAsync()
     {
-        treeNode = GetNode<Tree>("%FileTree");
-        treeNode.SetColumnExpand(0, true);
-        treeNode.SetColumnExpandRatio(0, 1);
-        treeNode.SetColumnExpandRatio(1, 0);
-        treeNode.SetColumnCustomMinimumWidth(1, 35);
-
-        fontSize = treeNode.GetThemeFontSize("font_size");
-
-        /*
-        treeNode.Theme.Changed += () => {
-            var changedFontSize = treeNode.GetThemeFontSize("font_size");
-            if (changedFontSize == fontSize) return;
-            fontSize = changedFontSize;
-            UpdateIconSizeRecursive(treeNode.GetRoot());
-        };
-        */
-
-        treeNode.ItemCollapsed += (item) => {
-            var isRoot = treeNode.GetRoot() == item;
-            if (!_fileIconProvider.HasLoaded) return;
-
-            var icon = _fileIconProvider.GetFolderIcon(
-                item.GetText(0),
-                !item.Collapsed,
-                isRoot
-            );
-            item.SetIcon(0, icon.Texture);
-        };
-
-        treeNode.ItemSelected += () => {
-            var selectedItem = treeNode.GetSelected();
-            var isFolderVariant = selectedItem.GetMeta(ItemMetadataKeys.IsFolder.ToString());
-            if (isFolderVariant.AsBool()) return;
-
-            var filePath = selectedItem.GetMeta(ItemMetadataKeys.RelativePath.ToString());
-            EmitSignal(SignalName.OnFileOpen, filePath.AsString());
-        };
-
-        var t = new Stopwatch();
-        t.Start();
         var fs = new FileSystemManager(Path.Combine(testDirPath, testTargetFolder));
-        var root = fs.GetDirectory();
+        _rootFolder = fs.GetDirectory();
+
         _fileIconProvider.LoadIconTheme(IconThemeKey.Mocha);
-        //CallDeferred(FileExplorer.MethodName.InitFileIcons)
 
-        RenderTreeItemFolder(root, treeNode, null);
-        t.Stop();
-        GD.Print("Loaded tree in: ",t.ElapsedMilliseconds);
+        _treeItems.Add(new()
+        {
+            Depth = 0,
+            GitStatus = FileStatusEnum.Unmodified,
+            HasAccess = true,
+            IsOpen = true,
+            IsFolder = _rootFolder.IsFolder,
+            Name = _rootFolder.Name,
+            Path = _rootFolder.Path,
+            TreeObject = _rootFolder
+        });
+        _triangleIconClose = GD.Load<CompressedTexture2D>("uid://bat48y1dfgxxn");
+        _triangleIconOpen = GD.Load<CompressedTexture2D>("uid://dmj0phpd2n4ck");
 
-        AddTreeClickEventListener();
+        OpenFolder(0);
+        CallDeferred(FileExplorer.MethodName.QueueRedraw);
     }
 
-    public void AddTreeClickEventListener()
+    public override void _Draw()
     {
-        if (treeNode == null) return;
-        treeNode.GuiInput += (e) => {
-            if (e is not InputEventMouseButton) return;
-            var buttonEvent = (InputEventMouseButton) e;
-            if (buttonEvent.ButtonIndex != MouseButton.Right) return;
-            var menu = new PopupMenu();
-            menu.AddItem("Rename");
-            AddChild(menu);
-            menu.Popup();
-
-            var targetPosition = GetWindow().Position + buttonEvent.GlobalPosition;
-            var windowPosition = new Vector2I((int) targetPosition.X, (int) targetPosition.Y);
-            GD.Print(windowPosition);
-
-            menu.Position = windowPosition;
-        };
-    }
-
-
-    /*
-    public void UpdateTreeItemName(TreeItem node, string newName, string itemDirectory)
-    {
-        node.SetText(0, newName);
-
-        var isRoot = treeNode?.GetRoot() == node;
-        var isFolder = (node.GetMeta(ItemMetadataKeys.IsFolder.ToString(), newName)).AsBool();
-
-        if (_fileIconProvider.HasLoaded){
-            var icon = isFolder ?
-                _fileIconProvider.GetFolderIcon(newName, !node.Collapsed, isRoot) :
-                _fileIconProvider.GetFileIcon(newName);
-            node.SetIcon(0, icon.Texture);
+        base._Draw();
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        RenderTree();
+        ResizeContainer();
+        stopwatch.Stop();
+        if (stopwatch.ElapsedMilliseconds > 100)
+        {
+            GD.Print("Rendered Tree in: ", stopwatch.ElapsedMilliseconds);
         }
-        node.SetMeta(ItemMetadataKeys.Name.ToString(), newName);
+    }
 
-        if (isRoot) {
-            testTargetFolder = newName;
-        } else {
-            var parentNode = node.GetParent();
-            var children = parentNode.GetChildren();
+    public override void _GuiInput(InputEvent @event)
+    {
+        base._GuiInput(@event);
 
-            var files =  children.Where(item =>
-                !(item.GetMeta(ItemMetadataKeys.IsFolder.ToString())).AsBool()
-            );
+        if (@event is InputEventMouseMotion)
+        {
+            var mouseMotionEvent = (InputEventMouseMotion)@event;
+            var itemIndex = GetTreeItemFromMousePosition(mouseMotionEvent.Position);
+            _itemIndexHovered = itemIndex;
+            QueueRedraw();
+        }
 
-            var folders = children.Where(item =>
-                (item.GetMeta(ItemMetadataKeys.IsFolder.ToString())).AsBool()
-            );
+        if (@event is InputEventMouseButton)
+        {
+            var buttonEvent = (InputEventMouseButton)@event;
+            if (
+                buttonEvent.ButtonIndex == MouseButton.Left &&
+                buttonEvent.Pressed
+            )
+            {
 
-            var childrenSorted = folders
-                .OrderBy(p => p.GetText(0))
-                .Concat(
-                    files
-                        .OrderBy(p => p.GetText(0))
-                        .ToList()
-                )
-                .ToList();
+                var itemIndex = GetTreeItemFromMousePosition(buttonEvent.Position);
+                var treeItem = _treeItems[itemIndex];
 
-            var foundIndex = childrenSorted.FindIndex(0, children.Count, (item) => (
-                item == node
-            )) - 1;
+                if (treeItem.IsFolder)
+                {
+                    if (treeItem.IsOpen)
+                    {
+                        CloseFolder(itemIndex);
+                    }
+                    else
+                    {
+                        OpenFolder(itemIndex);
+                    }
 
-            if (foundIndex < 0) {
-                var firstChild = children[0];
-                node.MoveBefore(firstChild);
-            } else {
-                var item = childrenSorted[foundIndex];
-                node.MoveAfter(item);
+                    ResizeContainer();
+                    QueueRedraw();
+                    return;
+                }
+
+                _itemPathSelected = treeItem.Path;
+                EmitSignal(SignalName.OnFileOpen, treeItem.Path);
             }
         }
-
-        UpdatePathRecursively(node, itemDirectory);
     }
-    */
-    /*
-    public void UpdatePathRecursively(TreeItem node, string parentFolderPath)
-    {
-        var name = (node.GetMeta(ItemMetadataKeys.Name.ToString())).AsString();
-        var newFullPath = Path.Combine(parentFolderPath, name);
-        node.SetMeta(ItemMetadataKeys.RelativePath.ToString(), newFullPath);
 
-        foreach (var child in node.GetChildren())
+    public override void _Notification(int what)
+    {
+        base._Notification(what);
+
+        if (what == NotificationMouseExit)
         {
-            UpdatePathRecursively(child, newFullPath);
-        }
-    }
-    */
-
-    public TreeItem? FindItemInUI(string relativePath, TreeItem node)
-    {
-        var currentRelativePath = (node.GetMeta(ItemMetadataKeys.RelativePath.ToString()))
-            .AsString();
-        if (currentRelativePath == relativePath) return node;
-
-        foreach (var child in node.GetChildren()) {
-            var foundChild = FindItemInUI(relativePath, child);
-            if (foundChild != null) return foundChild;
-        }
-
-        return null;
-    }
-
-    public void UpdateIconSizeRecursive(TreeItem treeItem)
-    {
-        treeItem.SetIconMaxWidth(0, fontSize + iconRelativeSize);
-
-        foreach (var child in treeItem.GetChildren()){
-            UpdateIconSizeRecursive(child);
+            _itemIndexHovered = null;
+            QueueRedraw();
         }
     }
 
-
-    public void InitFileIcons()
+    public void ResizeContainer()
     {
-        if (treeNode == null) return;
-        var root = treeNode.GetRoot();
-        UpdateIconTextureRecursive(root, treeNode);
+        var itemSize = (itemPadding * 2) + fontSize;
+        Size = new Vector2(Size.X, itemSize * (_treeItems.Count + 5));
+        CustomMinimumSize = new Vector2(0, itemSize * (_treeItems.Count + 5));
     }
 
-    public void UpdateIconTextureRecursive(TreeItem treeItem, Tree tree)
+    public void CloseFolder(int treeIndex)
     {
-        var isFolder = (treeItem.GetMeta(ItemMetadataKeys.IsFolder.ToString())).AsBool();
-        var isOpen = !treeItem.Collapsed;
-        var isRoot = tree.GetRoot() == treeItem;
+        var item = _treeItems[treeIndex]!;
+        item.IsOpen = false;
+        var currentDepth = item.Depth;
 
-        var icon = isFolder ?
-            _fileIconProvider.GetFolderIcon(treeItem.GetText(0), isOpen, isRoot) :
-            _fileIconProvider.GetFileIcon(treeItem.GetText(0));
-        treeItem.SetIcon(0, icon.Texture);
-
-        foreach (var child in treeItem.GetChildren())
+        var fileTreeItemsToRemove = new List<FileTreeItem>();
+        for (var i = treeIndex + 1; i < _treeItems.Count; i++)
         {
-            UpdateIconTextureRecursive(child, tree);
+            var subItem = _treeItems[i];
+            if (
+                subItem.Depth <= currentDepth
+            )
+            {
+                // has finished traversing sub items so return
+                break;
+            }
+
+            // depth is greater
+            fileTreeItemsToRemove.Add(subItem);
+        }
+
+        foreach (var itemToRemove in fileTreeItemsToRemove)
+        {
+            _treeItems.Remove(itemToRemove);
         }
     }
 
-    public void RenderTreeItemFolder(FileSystemItem fsItem, Tree tree, TreeItem? parentItem, int index = -1, int depth = 0) {
-        var node = tree.CreateItem(parentItem, index);
-        node.SetText(0, fsItem.Name);
-        node.SetIconMaxWidth(0, fontSize + iconRelativeSize);
-        node.SetSelectable(1, false);
-        node.SetMeta(ItemMetadataKeys.IsFolder.ToString(), fsItem.IsFolder);
-        node.SetMeta(ItemMetadataKeys.RelativePath.ToString(), fsItem.Path);
-        node.SetMeta(ItemMetadataKeys.Name.ToString(), fsItem.Name);
-
-        if (fsItem.IsFolder){
-            node.Collapsed = !fsItem.IsRoot;
-            node.SetSelectable(0, false);
-        } else {
-            node.DisableFolding = true;
-        }
-
-        if (_fileIconProvider.HasLoaded)
-        {
-            var icon = fsItem.IsFolder ?_fileIconProvider.GetFolderIcon(fsItem.Name, fsItem.IsRoot, fsItem.IsRoot)
-                : _fileIconProvider.GetFileIcon(fsItem.Name);
-
-            node.SetIcon(0, icon.Texture);
-        }
-
-        foreach(var subItem in fsItem.SubItems)
-        {
-            RenderTreeItemFolder(subItem, tree, node, -1, subItem.IsFolder ? depth + 1 : 0);
-        }
-
-    }
-
-
-    /*
-    public void RenderGitStatus()
+    public void OpenFolder(int treeIndex)
     {
-        if (treeNode == null) return;
+        var item = _treeItems[treeIndex]!;
+        var subItemDepth = item.Depth + 1;
 
-        foreach (var status in _fileStatuses) {
-            RenderGitStatusResultOnTreeItemRecursivelly(
-                treeNode.GetRoot(),
-                status
+        item.IsOpen = true;
+
+        var subItems = item
+            .TreeObject
+            .SubItems
+            .OrderBy(subItem => subItem.IsFolder)
+            .ThenByDescending(subItem => subItem.Name)
+            .ToArray();
+
+        foreach (var subItem in subItems)
+        {
+            _treeItems.Insert(treeIndex + 1, new()
+            {
+                Depth = subItemDepth,
+                GitStatus = FileStatusEnum.Unmodified,
+                IsOpen = false,
+                HasAccess = true,
+                IsFolder = subItem.IsFolder,
+                Name = subItem.Name,
+                Path = subItem.Path,
+                TreeObject = subItem
+            });
+        }
+
+        CallDeferred(FileExplorer.MethodName.QueueRedraw);
+    }
+
+    private int GetTreeItemFromMousePosition(Vector2 mousePos)
+    {
+        var itemHeight = fontSize + (itemPadding * 2);
+        var index = (int)Math.Floor(mousePos.Y / itemHeight);
+        return index;
+    }
+
+    private Rect2 GetTreeItemContainerSize(int index, int depth = 0)
+    {
+        var height = fontSize + (itemPadding * 2);
+        var x = (depth * itemDepthOffset);
+        var y = (index * height);
+
+        // top left
+        var containerRect = new Rect2(
+            new Vector2(x, y),
+            new Vector2(Size.X, height)
+        );
+
+        return containerRect;
+    }
+
+    public void RenderTree()
+    {
+        RenderingServer.CanvasItemClear(_canvasId);
+
+        var index = 0;
+
+        foreach (var item in _treeItems)
+        {
+            var containerRect = GetTreeItemContainerSize(index, item.Depth);
+
+
+            RenderItemBackground(item, index, containerRect);
+
+            if (item.IsFolder)
+            {
+                RenderFolderTriangle(item, containerRect);
+            }
+
+            if (_fileIconProvider.HasLoaded)
+            {
+                RenderItemFileIcon(item, containerRect);
+            }
+
+            RenderItemName(item, containerRect);
+            RenderGitStatus(item, containerRect);
+
+            index += 1;
+        }
+    }
+
+    public void RenderItemBackground(FileTreeItem item, int index, Rect2 containerRect)
+    {
+        // selection box
+        if (
+            _itemIndexHovered != index &&
+            _itemPathSelected != item.Path
+        ) return;
+
+        var box = new Rect2(
+            new Vector2(0, containerRect.Position.Y),
+            new Vector2(Size.X, containerRect.Size.Y)
             );
-        }
+
+        RenderingServer.CanvasItemAddRect(
+            _canvasId,
+            box,
+            Color.FromString(
+                _itemIndexHovered == index ? "#64437017" : "#64437047"
+                , Colors.White)
+        );
     }
 
-    public bool RenderGitStatusResultOnTreeItemRecursivelly(
-        TreeItem item,
-        FileStatus status
-    )
+    public void RenderFolderTriangle(FileTreeItem item, Rect2 containerSize)
     {
-        var relativePath = (item.GetMeta(ItemMetadataKeys.RelativePath.ToString())).AsString();
-        var fullPath = Path.Combine(testDirPath, relativePath);
-        if (fullPath == status.FullPath) {
-            if (!string.IsNullOrEmpty(status.YDisplayCode.Code)){
-                item.SetText(1, status.YDisplayCode.Code);
-            }
-            if (!string.IsNullOrEmpty(status.YDisplayCode.Color)){
-                var color = Color.FromString(status.YDisplayCode.Color, Colors.White);
-                item.SetSelectable(1, false);
-                item.SetCustomColor(1, color);
-                item.SetCustomColor(0, color);
-                item.SetTextAlignment(1, HorizontalAlignment.Center);
-            }
-            return true;
-        }
+        if (_triangleIconClose == null || _triangleIconOpen == null) return;
 
-        foreach (var child in item.GetChildren()){
-            var found = RenderGitStatusResultOnTreeItemRecursivelly(child, status);
-            if (found) return true;
-        }
+        var triangleIconSize = (fontSize + iconRelativeSize) * 2;
 
-        return false;
+        var triangleCenter = triangleIconSize / 2;
+        var containerCenter = containerSize.Size.Y / 2;
+        var centerDiff = containerCenter - triangleCenter;
+
+        var triangleIconPosition = new Vector2(
+            containerSize.Position.X,
+            containerSize.Position.Y + centerDiff
+        );
+
+        RenderingServer.CanvasItemAddTextureRect(
+            _canvasId,
+            new Rect2(
+                triangleIconPosition,
+                new Vector2(triangleIconSize, triangleIconSize)
+            ),
+            item.IsOpen ? _triangleIconOpen.GetRid() : _triangleIconClose.GetRid()
+        );
     }
-    */
+
+    public void RenderItemFileIcon(FileTreeItem item, Rect2 containerRect)
+    {
+        var icon = item.IsFolder ?
+            _fileIconProvider.GetFolderIcon(item.Name, item.IsOpen, item.Depth == 0) :
+            _fileIconProvider.GetFileIcon(item.Name);
+
+        var itemIconSize = new Vector2I(
+            fontSize + iconRelativeSize,
+            fontSize + iconRelativeSize
+        );
+
+        var x = containerRect.Position.X + (fontSize * 2);
+
+        var iconCenter = itemIconSize.Y / 2;
+        var diff = (containerRect.Size.Y / 2) - iconCenter;
+        var y = containerRect.Position.Y + diff;
+
+        var itemIconPosition = new Vector2(x, y);
+
+        RenderingServer.CanvasItemAddTextureRect(
+            _canvasId,
+            new Rect2(itemIconPosition, itemIconSize),
+            icon.Texture.GetRid()
+        );
+
+        x += itemIconSize.X + itemMargin;
+
+    }
+
+    public void RenderItemName(FileTreeItem item, Rect2 containerRect)
+    {
+        var textRid = _textServer.CreateShapedText();
+
+        _textServer.ShapedTextAddString(
+            textRid,
+            item.Name,
+            _font.GetRids(),
+            fontSize
+        );
+
+        var x = (int) (containerRect.Position.X + (fontSize * 3.5));
+
+        var textBounds = _textServer.ShapedTextGetSize(textRid);
+        var textCenter = textBounds.Y / 2;
+        var containerCenter = containerRect.Size.Y / 2;
+        var centerDiff = containerCenter - textCenter;
+
+        var des = _textServer.ShapedTextGetDescent(textRid);
+        var y = (int)(containerRect.Position.Y + textCenter + des);
+
+        var isSelected = _itemPathSelected == item.Path;
+
+        _textServer.ShapedTextDraw(
+            textRid,
+            _canvasId,
+            new Vector2(x, y),
+            -1,
+            -1,
+            Color.FromString(
+                isSelected ?
+                "#b9bed4" :
+                "#878ca5"
+            , Colors.White)
+        );
+
+        _textServer.FreeRid(textRid);
+    }
+
+    public void RenderGitStatus(FileTreeItem item, Rect2 containerRect)
+    {
+        var status = _fileStatuses.GetValueOrDefault(item.Path);
+        if (status == null) return;
+
+        var labelRid = _textServer.CreateShapedText();
+
+        _textServer.ShapedTextAddString(
+            labelRid,
+            status.YDisplayCode.Code,
+            _font.GetRids(),
+            fontSize
+        );
+
+        var textBounds = _textServer.ShapedTextGetSize(labelRid);
+        var textCenter = textBounds.Y / 2;
+        var containerCenter = containerRect.Size.Y / 2;
+        var centerDiff = containerCenter - textCenter;
+
+        var des = _textServer.ShapedTextGetDescent(labelRid);
+        var y = (int)(containerRect.Position.Y + textCenter + des);
+
+        var marginFromGutter = 10;
+        var x = Size.X - textBounds.X - marginFromGutter;
+
+        _textServer.ShapedTextDraw(
+            labelRid,
+            _canvasId,
+            new Vector2(x, y),
+            -1,
+            -1,
+            Color.FromString(status.YDisplayCode.Color, Colors.White)
+        );
+
+        _textServer.FreeRid(labelRid);
+    }
 }

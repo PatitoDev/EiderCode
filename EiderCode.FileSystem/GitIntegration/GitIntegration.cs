@@ -121,7 +121,7 @@ public class GitIntegration
         return output;
     }
 
-    async public Task<IReadOnlyList<FileStatus>> GetStatus(CancellationToken cancellationToken)
+    async public Task<Dictionary<string, FileStatus>> GetStatus(CancellationToken cancellationToken)
     {
         var projectPath = await GetProjectFullPathAsync(cancellationToken);
 
@@ -155,12 +155,7 @@ public class GitIntegration
                 FullPath = fullPath
             };
         })
-        .ToList();
-
-        foreach (var s in fileStatuses)
-        {
-            Debug.WriteLine(s.FullPath);
-        }
+        .ToDictionary(s => s.FullPath, s => s);
 
         return fileStatuses;
     }

@@ -94,7 +94,6 @@ public partial class Editor : MarginContainer
         OpenFileCancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = OpenFileCancellationTokenSource.Token;
 
-        GrabFocus();
         _codeRenderer!.UpdateCursorPosition();
 
         //_codeEngine.ClearOnLineParsedEvent();

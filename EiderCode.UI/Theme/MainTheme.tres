@@ -49,6 +49,7 @@ content_margin_bottom = 5.0
 bg_color = Color(0.839937, 3.56168e-06, 0.507288, 1)
 
 [resource]
+default_font = SubResource("SystemFont_jme7d")
 Label/fonts/font = SubResource("SystemFont_htk7t")
 Tree/colors/font_color = Color(1, 1, 1, 0.729412)
 Tree/colors/font_selected_color = Color(1, 1, 1, 1)
