@@ -67,6 +67,7 @@ theme_override_constants/h_separation = 0
 alignment = 2
 
 [node name="MinimizeBtn" type="Button" parent="FlowContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 focus_mode = 0
@@ -78,6 +79,7 @@ icon_alignment = 1
 expand_icon = true
 
 [node name="MaximizeBtn" type="Button" parent="FlowContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 focus_mode = 0
@@ -89,6 +91,7 @@ icon_alignment = 1
 expand_icon = true
 
 [node name="CloseBtn" type="Button" parent="FlowContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 focus_mode = 0
