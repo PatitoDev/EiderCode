@@ -55,29 +55,27 @@ public partial class CodeRenderer : Control
         if (_codeEngine == null) return;
         _codeEngine.OnContentChanged += (o, e) =>
         {
-            //RenderDocument(CancellationToken.None);
-            GD.Print("Content changed");
             QueueRedraw();
         };
 
         _codeEngine.OnContentChangedAndCursorMoved += (o, e) =>
         {
-            GD.Print("Content changed and cursor");
-            //RenderDocument(CancellationToken.None);
             QueueRedraw();
             CallDeferred(CodeRenderer.MethodName.UpdateCursorPosition);
         };
 
-        _codeEngine.OnLineParsed += (o,e) => {
+        _codeEngine.OnLineParsed += (o, e) =>
+        {
             CallDeferred(CodeRenderer.MethodName.QueueRedraw);
         };
 
-        _codeEngine.OnFinishedParsing += (o,e) =>
+        _codeEngine.OnFinishedParsing += (o, e) =>
         {
-            //CallDeferred(CodeRenderer.MethodName.QueueRedraw);
+            CallDeferred(CodeRenderer.MethodName.QueueRedraw);
         };
 
-        _codeEngine.OnModeChange += (o, e) => {
+        _codeEngine.OnModeChange += (o, e) =>
+        {
             if (_cursor == null) return;
 
             _cursor.SetCursorType(
@@ -87,8 +85,9 @@ public partial class CodeRenderer : Control
             );
         };
 
-        _codeEngine.OnCursorPositionChanged += (o, e) => {
-          CallDeferred(CodeRenderer.MethodName.UpdateCursorPosition);
+        _codeEngine.OnCursorPositionChanged += (o, e) =>
+        {
+            CallDeferred(CodeRenderer.MethodName.UpdateCursorPosition);
         };
     }
 
@@ -107,23 +106,12 @@ public partial class CodeRenderer : Control
         var documentLines = _codeEngine.GetTokens().Lines;
         timer.Start();
         RenderDocument();
-        GD.Print("Rendered document in: ", timer.ElapsedMilliseconds);
+        if (timer.ElapsedMilliseconds > 100)
+        {
+            GD.Print("Rendered document in: ", timer.ElapsedMilliseconds);
+        }
         timer.Stop();
     }
-
-    /*
-    public async Task OnLineParsedAsync(DocumentLine line, CancellationToken cancellation)
-    {
-        await Task.Run(() =>
-        {
-            if (!_charSize.HasValue) return;
-
-            if (cancellation.IsCancellationRequested) return;
-            RenderLine(line, cancellation);
-            CallDeferred(CodeRenderer.MethodName.UpdateContainerSize);
-        });
-    }
-    */
 
     public void UpdateContainerSize()
     {
@@ -134,7 +122,6 @@ public partial class CodeRenderer : Control
 
     public void OnFileOpen()
     {
-        GD.Print("Reset canvas");
         ResetCanvas(_canvasId);
     }
 
@@ -149,7 +136,8 @@ public partial class CodeRenderer : Control
 
         var tokens = _codeEngine.GetTokens();
         ResetCanvas(_canvasId);
-        foreach (var l in tokens.Lines) {
+        foreach (var l in tokens.Lines)
+        {
             RenderLine(l, CancellationToken.None);
         }
     }
@@ -164,8 +152,10 @@ public partial class CodeRenderer : Control
         var position = new Vector2(0, (_charSize.Value.Y * (line.Index + 1)));
 
         var lineLabel = _lineLabels.ElementAtOrDefault(line.Index);
-        if (lineLabel == null) {
-            lineLabel = new LineLabel(){
+        if (lineLabel == null)
+        {
+            lineLabel = new LineLabel()
+            {
                 TokenLabels = new()
             };
             _lineLabels.Insert(line.Index, lineLabel);
@@ -177,11 +167,14 @@ public partial class CodeRenderer : Control
             var existingTokenLabel = lineLabel.TokenLabels.ElementAtOrDefault(tokenIndex);
             Rid? textId = null;
 
-            if (existingTokenLabel != null) {
+            if (existingTokenLabel != null)
+            {
                 textId = existingTokenLabel.Rid;
                 // make sure its clean
                 _textServer.ShapedTextClear(textId.Value);
-            } else {
+            }
+            else
+            {
                 textId = _textServer.CreateShapedText(
                   TextServer.Direction.Ltr,
                   TextServer.Orientation.Horizontal
@@ -207,7 +200,8 @@ public partial class CodeRenderer : Control
             );
 
             var textSize = _textServer.ShapedTextGetSize(textId.Value);
-            var tokenLabel = new TokenLabel() {
+            var tokenLabel = new TokenLabel()
+            {
                 Content = token.Content,
                 Position = position,
                 Rid = textId.Value,
@@ -215,9 +209,12 @@ public partial class CodeRenderer : Control
             };
 
 
-            if (existingTokenLabel == null) {
+            if (existingTokenLabel == null)
+            {
                 lineLabel.TokenLabels.Insert(tokenIndex, tokenLabel);
-            } else {
+            }
+            else
+            {
                 lineLabel.TokenLabels[tokenIndex] = tokenLabel;
             }
 
@@ -247,7 +244,7 @@ public partial class CodeRenderer : Control
         if (newCaretBounds == null) return;
         //_cursor?.MoveTo(newPosition);
         _cursor?.UpdateCursorSizeAndBounds(newCaretBounds.Value.pos, newCaretBounds.Value.size);
-            //_cursor?.SetChar(newPostion.Value.character);
+        //_cursor?.SetChar(newPostion.Value.character);
     }
 
     // only call after render has finished
@@ -266,9 +263,10 @@ public partial class CodeRenderer : Control
 
         if (line.TokenLabels.Sum(t => t.Content.Length) == position.CharNumber)
         {
-           // we are at end of line
+            // we are at end of line
             var last = line.TokenLabels.LastOrDefault();
-            if (last == null) {
+            if (last == null)
+            {
                 GD.Print(last);
                 var startPosition = new Vector2(0, y);
                 return (startPosition, _charSize.Value);
@@ -280,7 +278,8 @@ public partial class CodeRenderer : Control
         {
             if (targetCharPosition >= charCount &&
                 targetCharPosition < charCount + token.Content.Length
-                ) {
+                )
+            {
                 // found token with char inside
                 var relativeGraphemePosition = targetCharPosition - charCount;
                 var bounds = _textServer.ShapedTextGetGraphemeBounds(token.Rid, relativeGraphemePosition);
