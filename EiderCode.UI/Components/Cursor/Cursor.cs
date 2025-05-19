@@ -1,5 +1,4 @@
 using Godot;
-using System;
 
 namespace EiderCode.UI;
 
@@ -11,6 +10,8 @@ public enum CursorType {
 public partial class Cursor : Panel
 {
   public Vector2 BlockSize;
+  private Tween? _sizeTween = null;
+  private Tween? _moveTween = null;
 
   public override void _Ready()
   {
@@ -21,24 +22,33 @@ public partial class Cursor : Panel
 
   public void MoveTo(Vector2 position)
   {
-    var t = GetTree().CreateTween();
-    t.SetTrans(Tween.TransitionType.Spring);
-    t.SetEase(Tween.EaseType.InOut);
-    t.TweenProperty(this, "position", position - new Vector2(0, Size.Y), 0.05);
+    _moveTween?.Kill();
+
+    _moveTween = GetTree().CreateTween();
+    _moveTween.SetTrans(Tween.TransitionType.Spring);
+    _moveTween.SetEase(Tween.EaseType.InOut);
+    _moveTween.TweenProperty(
+      this,
+      "position",
+      position - new Vector2(0, Size.Y),
+      0.05
+    );
   }
 
   public void SetCursorType(CursorType cursorType)
   {
-    var t = GetTree().CreateTween();
-    t.SetTrans(Tween.TransitionType.Spring);
-    t.SetEase(Tween.EaseType.InOut);
+    _sizeTween?.Kill();
     _cursorType = cursorType;
+
+    _sizeTween = GetTree().CreateTween();
+    _sizeTween.SetTrans(Tween.TransitionType.Spring);
+    _sizeTween.SetEase(Tween.EaseType.InOut);
     if (cursorType == CursorType.Line) {
-      t.TweenProperty(this, "size:x", 3, 0.10);
-      t.TweenProperty(this, "size:y", BlockSize.Y, 0.10);
+      _sizeTween.TweenProperty(this, "size:x", 3, 0.10);
+      _sizeTween.TweenProperty(this, "size:y", BlockSize.Y, 0.10);
     } else {
-      t.TweenProperty(this, "size:x", BlockSize.X, 0.10);
-      t.TweenProperty(this, "size:y", BlockSize.Y, 0.10);
+      _sizeTween.TweenProperty(this, "size:x", BlockSize.X, 0.10);
+      _sizeTween.TweenProperty(this, "size:y", BlockSize.Y, 0.10);
     }
   }
 
