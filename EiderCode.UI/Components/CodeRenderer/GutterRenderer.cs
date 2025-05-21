@@ -2,6 +2,7 @@ using EiderCode.Engine;
 using EiderCode.Engine.Models;
 using Godot;
 using System;
+using System.Linq;
 
 public partial class GutterRenderer : Control
 {
@@ -29,7 +30,7 @@ public partial class GutterRenderer : Control
 
         _codeEngine.OnFinishedParsing += (o, ev) =>
         {
-            if (_codeEngine.LineCount.ToString().Length > _maxLineCountLength)
+            if (_codeEngine.State.Lines.Count.ToString().Length > _maxLineCountLength)
             {
                 CallDeferred(GutterRenderer.MethodName.RenderGutter);
             }
@@ -43,7 +44,7 @@ public partial class GutterRenderer : Control
 
         _codeEngine.OnContentChanged += (o, ev) =>
         {
-            if (_codeEngine.LineCount == _linesRendered) return;
+            if (_codeEngine.State.Lines.Count == _linesRendered) return;
             CallDeferred(GutterRenderer.MethodName.RenderGutter);
         };
 
@@ -75,14 +76,14 @@ public partial class GutterRenderer : Control
         if (!_charSize.HasValue) return;
         if (_codeEngine == null) return;
         var maxLineCount = Math.Max(
-          _codeEngine.Lines.Count.ToString().Length,
+          _codeEngine.State.Lines.Count.ToString().Length,
           _maxLineCountLength
         );
 
         var width = (maxLineCount + 2) * _charSize.Value.X;
         var windowHeight = DisplayServer.WindowGetSize().X;
         var extraBottomPadding = ((int)(windowHeight / _charSize.Value.Y));
-        var height = (_codeEngine.LineCount + extraBottomPadding) * _charSize.Value.Y;
+        var height = (_codeEngine.State.Lines.Count + extraBottomPadding) * _charSize.Value.Y;
 
         CustomMinimumSize = new Vector2(width, height);
     }
@@ -101,7 +102,7 @@ public partial class GutterRenderer : Control
         if (_codeEngine == null) return;
 
         RenderingServer.CanvasItemClear(_canvasId);
-        var linesToRender = _codeEngine.DocumentLines.ToArray();
+        var linesToRender = _codeEngine.State.DocumentLines.ToArray();
         _linesRendered = linesToRender.Length;
 
         foreach (var line in linesToRender)
@@ -137,7 +138,7 @@ public partial class GutterRenderer : Control
         _textServer.ShapedTextAddString(textId, line.Index.ToString(), _font.GetRids(), _fontSize.Value);
 
         var color = _codeEngine!.GetGuiColor(GuiThemeKeys.EditorFg);
-        var isOnLine = _codeEngine!.CursorPosition.LineNumber == line.Index;
+        var isOnLine = _codeEngine!.State.CursorPosition.LineNumber == line.Index;
         color.A = isOnLine ? 1f : 0.6f;
 
         var offsetXForRightAlign = (_maxLineCountLength - (line.Index.ToString().Length)) * _charSize.Value.X;

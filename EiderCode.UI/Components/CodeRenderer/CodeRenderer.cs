@@ -79,7 +79,7 @@ public partial class CodeRenderer : Control
             if (_cursor == null) return;
 
             _cursor.SetCursorType(
-                _codeEngine.CurrentMode == ViMode.Insert ?
+                _codeEngine.State.Mode == ViMode.Insert ?
                  CursorType.Line :
                  CursorType.Block
             );
@@ -117,7 +117,7 @@ public partial class CodeRenderer : Control
     {
         if (!_charSize.HasValue) return;
         if (_codeEngine == null) return;
-        CustomMinimumSize = new Vector2(0, _codeEngine.LineCount * _charSize.Value.Y);
+        CustomMinimumSize = new Vector2(0, _codeEngine.State.Lines.Count * _charSize.Value.Y);
     }
 
     public void OnFileOpen()
@@ -238,9 +238,9 @@ public partial class CodeRenderer : Control
     {
         if (_codeEngine == null) return;
 
-        var lineCount = _codeEngine.LineCount;
+        var lineCount = _codeEngine.State.Lines.Count;
 
-        var newCaretBounds = GetCharPosition(_codeEngine.CursorPosition);
+        var newCaretBounds = GetCharPosition(_codeEngine.State.CursorPosition);
         if (newCaretBounds == null) return;
         //_cursor?.MoveTo(newPosition);
         _cursor?.UpdateCursorSizeAndBounds(newCaretBounds.Value.pos, newCaretBounds.Value.size);

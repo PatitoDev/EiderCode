@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using EiderCode.Engine;
 using EiderCode.Engine.Models;
@@ -8,11 +7,11 @@ public class MotionB : IMotion
     // b
     // Go to the previous word
     // word - characters, numberss or underscore sperated from whitespace
-    public static Motion? Handle(InputKey key, List<string> lines, EditorPosition cursorPosition)
+    public static Motion? Handle(InputKey key, EngineState state)
     {
-        var charPosition = cursorPosition.CharNumber;
-        var lineNumber = cursorPosition.LineNumber;
-        var currentLine = lines[lineNumber]!;
+        var charPosition = state.CursorPosition.CharNumber;
+        var lineNumber = state.CursorPosition.LineNumber;
+        var currentLine = state.Lines[lineNumber]!;
 
         var stringToMatch = currentLine.Substring(0, charPosition + 1);
         var matches = Regex.Matches(stringToMatch, "(\\w+)|(\\S)");
@@ -39,15 +38,14 @@ public class MotionB : IMotion
         {
             Start = new()
             {
-                CharNumber = cursorPosition.CharNumber,
-                LineNumber = cursorPosition.LineNumber
+                CharNumber = charPosition,
+                LineNumber = lineNumber
             },
             End = new()
             {
                 CharNumber = index,
-                LineNumber = cursorPosition.LineNumber
-            },
-            MotionStack = key.KeyCode.ToString()
+                LineNumber = lineNumber
+            }
         };
     }
 }

@@ -1,27 +1,25 @@
 using System;
-using System.Collections.Generic;
 using EiderCode.Engine;
 using EiderCode.Engine.Models;
 
 public class MotionL : IMotion
 {
-    public static Motion? Handle(InputKey key, List<string> lines, EditorPosition cursorPosition)
+    public static Motion? Handle(InputKey key, EngineState state)
     {
-        var currentLineLength = lines[cursorPosition.LineNumber].Length;
+        var currentLineLength = state.Lines[state.CursorPosition.LineNumber].Length;
 
         return new Motion()
         {
             Start = new()
             {
-                CharNumber = cursorPosition.CharNumber,
-                LineNumber = cursorPosition.LineNumber,
+                CharNumber = state.CursorPosition.CharNumber,
+                LineNumber = state.CursorPosition.LineNumber,
             },
             End = new()
             {
-                CharNumber = Math.Min(cursorPosition.CharNumber + 1, currentLineLength),
-                LineNumber = cursorPosition.LineNumber
-            },
-            MotionStack = key.KeyCode.ToString()
+                CharNumber = Math.Min(state.CursorPosition.CharNumber + 1, currentLineLength),
+                LineNumber = state.CursorPosition.LineNumber
+            }
         };
     }
 }

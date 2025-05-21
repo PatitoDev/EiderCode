@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using EiderCode.Engine;
 using EiderCode.Engine.Models;
@@ -9,11 +8,11 @@ public class MotionE : IMotion
     // e
     // Go to the end of the next word
     // word - characters, numberss or underscore sperated from whitespace
-    public static Motion? Handle(InputKey key, List<string> lines, EditorPosition cursorPosition)
+    public static Motion? Handle(InputKey key, EngineState state)
     {
-        var charPosition = cursorPosition.CharNumber;
-        var lineNumber = cursorPosition.LineNumber;
-        var currentLine = lines[lineNumber]!;
+        var charPosition = state.CursorPosition.CharNumber;
+        var lineNumber = state.CursorPosition.LineNumber;
+        var currentLine = state.Lines[lineNumber]!;
 
         var stringToMatch = currentLine.Substring(charPosition);
         var matches = Regex.Matches(stringToMatch, "(\\w+)|(\\S)");
@@ -23,18 +22,18 @@ public class MotionE : IMotion
         var firstMatch = matches[0];
 
         var endIndex = firstMatch.Index + (firstMatch.Length - 1);
-        var matchedLine = cursorPosition.LineNumber;
+        var matchedLine = state.CursorPosition.LineNumber;
         var match = firstMatch;
 
         if (endIndex == 0)
         {
             // if we are at the end of the word already go the the next word
             // return as we can't find a secondary match
-            if (matches.Count < 2 && (lines.Count - 1) > lineNumber)
+            if (matches.Count < 2 && (state.Lines.Count - 1) > lineNumber)
             {
                 // if we don't have anything to match
                 // try to match with line below
-                var nextLineContent = lines[lineNumber + 1]!;
+                var nextLineContent = state.Lines[lineNumber + 1]!;
                 var nextLineMatch = Regex.Match(nextLineContent, "(\\w+)|(\\S)");
                 if (nextLineMatch == null) return null; // nothing found
                 match = nextLineMatch;
@@ -48,7 +47,7 @@ public class MotionE : IMotion
         }
 
         endIndex = match.Index + (match.Length - 1);
-        if (cursorPosition.LineNumber == matchedLine)
+        if (state.CursorPosition.LineNumber == matchedLine)
         {
             // make sure to add substring offset
             endIndex += charPosition;
@@ -58,15 +57,14 @@ public class MotionE : IMotion
         {
             Start = new()
             {
-                CharNumber = cursorPosition.CharNumber,
-                LineNumber = cursorPosition.LineNumber
+                CharNumber = state.CursorPosition.CharNumber,
+                LineNumber = state.CursorPosition.LineNumber
             },
             End = new()
             {
                 CharNumber = endIndex,
                 LineNumber = matchedLine
-            },
-            MotionStack = key.KeyCode.ToString()
+            }
         };
     }
 

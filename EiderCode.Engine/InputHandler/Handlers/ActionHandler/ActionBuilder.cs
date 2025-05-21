@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using EiderCode.Engine.Models;
-using Godot;
+using EiderCode.Engine;
+using System.Linq;
 
 public enum Action {
   Change, // c
@@ -27,7 +28,7 @@ public static class ActionBuilder {
   private static IReadOnlyDictionary<long, Action> _actionMap = new Dictionary<long, Action>()
   {
     { (long)Convert.ToInt32('c'), Action.Change },
-    { (long)Convert.ToInt32('g'), Action.Go },
+    { (long)Convert.ToInt32('g'), Action.Go }, // motion not an action
     { (long)Convert.ToInt32('y'), Action.Yank },
     { (long)Convert.ToInt32('p'), Action.Paste },
     { (long)Convert.ToInt32('r'), Action.Replace },
@@ -65,21 +66,24 @@ public static class ActionBuilder {
 
 
   public static ExecuteResult ExectueAction(
-    EditorPosition cursorPosition,
-    ActionState state,
-    ViMode mode,
-    List<string> lines
+    EngineState engineState,
+    ActionState actionState
   ){
+    var currentAction = actionState.CurrentAction;
+    var cursorPosition = engineState.CursorPosition;
+    var lines = engineState.Lines.ToList();
+    var motion = actionState.Motion;
 
-    if (state.CurrentAction == Action.Change) {
+
+    if (currentAction == Action.Change) {
       // handle change - C
-      if (state.Motion == null) throw new NotImplementedException();
+      if (motion == null) throw new NotImplementedException();
 
       // todo - not hardcode this
-      var line = lines[state.Motion.End.LineNumber];
-      lines[state.Motion.End.LineNumber] = line.Remove(
-        state.Motion.Start.CharNumber,
-        state.Motion.End.CharNumber - state.Motion.Start.CharNumber
+      var line = lines[motion.End.LineNumber];
+      lines[motion.End.LineNumber] = line.Remove(
+        motion.Start.CharNumber,
+        motion.End.CharNumber - motion.Start.CharNumber
       );
 
       return new(){
@@ -92,14 +96,14 @@ public static class ActionBuilder {
       };
     }
 
-    if (state.CurrentAction == Action.Insert) {
+    if (currentAction == Action.Insert) {
       return new(){
         ChangedMode = ViMode.Insert,
         ActionState = new()
       };
     }
 
-    if (state.CurrentAction == Action.Append) {
+    if (currentAction == Action.Append) {
 
       var newCharPosition = Math.Min(
         cursorPosition.CharNumber + 1,

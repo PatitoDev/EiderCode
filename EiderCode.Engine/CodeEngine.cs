@@ -16,6 +16,16 @@ public class OnLineParsedEventArgs : EventArgs
     public required DocumentLine Line { get; init; }
 }
 
+public record EngineState
+{
+    public required string Content { get; init; }
+    public required IReadOnlyList<string> OriginalLines { get; init; }
+    public required IReadOnlyList<string> Lines { get; init; }
+    public required IReadOnlyList<DocumentLine> DocumentLines { get; init; }
+    public required ViMode Mode { get; init; }
+    public required SubMode? SubMode { get; init; }
+    public required EditorPosition CursorPosition { get; init; }
+}
 
 public class CodeEngine
 {
@@ -29,25 +39,23 @@ public class CodeEngine
 
     private Tokenizer _tokenizer = new();
 
-    public EditorPosition CursorPosition { get; private set; }
-    public string Content { get; private set; } = "";
-    public List<string> Lines = new List<string>();
-    public List<string> OriginalLines = new List<string>();
-    public List<DocumentLine> DocumentLines;
-    public int LineCount { get; private set; } = 0;
     public string FilePath { get; private set; } = "";
-    public ViMode CurrentMode = ViMode.Normal;
 
+    public EngineState State { get; private set; }
     private ActionState ActionState;
 
     public CodeEngine()
     {
-        DocumentLines = new();
-        CursorPosition = new EditorPosition()
-        {
-            LineNumber = 0,
-            CharNumber = 0
+        State = new() {
+            Content = "",
+            CursorPosition = new (0,0),
+            DocumentLines =  new List<DocumentLine>(),
+            Lines =  new List<string>(),
+            Mode = ViMode.Normal,
+            OriginalLines = new List<string>(),
+            SubMode = null
         };
+
         ActionState = new();
     }
 
@@ -70,23 +78,20 @@ public class CodeEngine
 
     public async Task<Document> OpenFileAsync(string filePath, CancellationToken cancellationToken)
     {
-        Content = "";
-        DocumentLines = new();
-        ActionState = new();
-        CursorPosition = new EditorPosition()
-        {
-            LineNumber = 0,
-            CharNumber = 0
-        };
-        Lines = new List<string>();
-        OriginalLines = new List<string>();
         FilePath = filePath;
+        State = new() {
+            Content = "",
+            CursorPosition = new (0,0),
+            DocumentLines =  new List<DocumentLine>(),
+            Lines =  new List<string>(),
+            Mode = ViMode.Normal,
+            OriginalLines = new List<string>(),
+            SubMode = null
+        };
 
-        //Lines = content.Split("\n").ToList();
-        //LineCount = Lines.Count()
         _tokenizer.LoadGrammar(filePath);
         var streamReader = File.OpenText(filePath);
-        LineCount = 0;
+        var lineCount = 0;
 
         IStateStack? stack = null;
 
@@ -95,20 +100,29 @@ public class CodeEngine
             var line = await streamReader.ReadLineAsync(cancellationToken);
             if (cancellationToken.IsCancellationRequested) return new Document() { Lines = Array.Empty<DocumentLine>() };
             if (line == null) break; // handle done reading
-            Content += line + "\n";
-            Lines.Add(line);
-            OriginalLines.Add(line);
-            var (DocumentLine, newStack) = _tokenizer.TokenizeLine(line, LineCount, stack);
+
+            var (documentLine, newStack) = _tokenizer.TokenizeLine(line, lineCount, stack);
+            var content = State.Content + line + "\n";
+            var lines = State.Lines.Append(line);
+            var originalLines = State.OriginalLines.Append(line);
+            var documentLines = State.DocumentLines.Append(documentLine);
+
             if (cancellationToken.IsCancellationRequested) return new Document() { Lines = Array.Empty<DocumentLine>() };
 
+            State = State with {
+                Content = content,
+                Lines = lines.ToList(),
+                OriginalLines = originalLines.ToList(),
+                DocumentLines = documentLines.ToList(),
+            };
+
+            stack = newStack;
             OnLineParsed?.Invoke(this, new()
             {
-                Line = DocumentLine
+                Line = documentLine
             });
 
-            LineCount += 1;
-            stack = newStack;
-            DocumentLines.Add(DocumentLine);
+            lineCount += 1;
         }
 
         streamReader.Dispose();
@@ -116,34 +130,41 @@ public class CodeEngine
 
         return new Document()
         {
-            Lines = DocumentLines.ToArray()
+            Lines = State.DocumentLines.ToArray()
         };
-
     }
 
     public Document GetTokens()
     {
         return new Document()
         {
-            Lines = DocumentLines.ToArray()
+            Lines = State.DocumentLines.ToArray()
         };
     }
 
     private void SetCursorPosition(EditorPosition position)
     {
-        var targetLineNumber = Math.Clamp(position.LineNumber, 0, Lines.Count - 1);
-        var targetChar = Math.Clamp(position.CharNumber, 0,
-          Math.Max(Lines[targetLineNumber]!.Length, 0)
-        );
+        var targetLineNumber = Math
+            .Clamp(
+                position.LineNumber,
+                0,
+                State.Lines.Count - 1
+            );
 
-        CursorPosition = new EditorPosition()
+        var targetChar = Math
+            .Clamp(
+                position.CharNumber,
+                0,
+                Math.Max(State.Lines[targetLineNumber]!.Length, 0)
+            );
+
+        State = State with { CursorPosition = new EditorPosition()
         {
             CharNumber = targetChar,
             LineNumber = targetLineNumber
-        };
+        }};
         OnCursorPositionChanged?.Invoke(this, new EventArgs());
     }
-
 
     public void HandleKeyPress(InputKey key)
     {
@@ -155,9 +176,7 @@ public class CodeEngine
         */
         var result = InputHandler.Handle(
             key,
-            CurrentMode,
-            Lines,
-            CursorPosition,
+            State,
             ActionState
         );
 
@@ -169,14 +188,22 @@ public class CodeEngine
     {
         if (result.ChangedMode.HasValue)
         {
-            CurrentMode = result.ChangedMode.Value;
+            State = State with {
+                Mode = result.ChangedMode.Value,
+            };
             OnModeChange?.Invoke(this, EventArgs.Empty);
         }
+
+        State = State with {
+            SubMode = result.ChangedSubMode
+        };
 
         if (result.NewCursorPosition.HasValue && result.Modification == null)
         {
             // only send cursor update if there are no modifications
-            CursorPosition = result.NewCursorPosition.Value;
+            State = State with {
+                CursorPosition = result.NewCursorPosition.Value
+            };
             OnCursorPositionChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -185,7 +212,9 @@ public class CodeEngine
             HandleModification(result.Modification);
             if (result.NewCursorPosition.HasValue)
             {
-                CursorPosition = result.NewCursorPosition.Value;
+                State = State with {
+                    CursorPosition = result.NewCursorPosition.Value
+                };
                 OnContentChangedAndCursorMoved?.Invoke(this, EventArgs.Empty);
             }
             else
@@ -200,22 +229,19 @@ public class CodeEngine
     private void HandleModification(Modification modification)
     {
         var newText = string.Join("\n", modification.Lines);
-        Content = newText;
-        Lines = modification.Lines;
-        LineCount = modification.Lines.Count();
-        var document = _tokenizer.TokenizeDocument(FilePath, Content);
+        var document = _tokenizer.TokenizeDocument(FilePath, newText);
 
         var lineIndex = 0;
         var startIndexOfLinesToCompare = 0;
 
         foreach (var line in modification.Lines)
         {
-            if (startIndexOfLinesToCompare >= OriginalLines.Count - 1) {
+            if (startIndexOfLinesToCompare >= State.OriginalLines.Count - 1) {
                 document.Lines[lineIndex].Status = DocumentLineStatus.Modified;
             }
 
             var linesComparedCount = 0;
-            foreach (var lineToCompare in OriginalLines.Skip(startIndexOfLinesToCompare))
+            foreach (var lineToCompare in State.OriginalLines.Skip(startIndexOfLinesToCompare))
             {
                 var hasChanged = lineToCompare != line;
 
@@ -232,6 +258,10 @@ public class CodeEngine
             lineIndex += 1;
         }
 
-        DocumentLines = document.Lines.ToList();
+        State = State with {
+            DocumentLines = document.Lines.ToList(),
+            Content = newText,
+            Lines = modification.Lines,
+        };
     }
 }

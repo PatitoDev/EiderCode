@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using EiderCode.Engine.Models;
-using Godot;
 
 namespace EiderCode.Engine;
 
@@ -37,7 +36,6 @@ namespace EiderCode.Engine;
 */
 
 public record Motion {
-  public required string MotionStack { get; init; }
   public required EditorPosition Start { get; init; }
   public required EditorPosition End { get; init; }
 }
@@ -46,11 +44,11 @@ public static class MotionBuilder
 {
 
   private static Dictionary<
-    long, Func<InputKey, List<string>, EditorPosition, Motion?>
+    long, Func<InputKey, EngineState, Motion?>
   > _funcMap = new(){
-    { (long)Key.Key0 , Motion0.Handle },
-    { (long)Key.Asciicircum, MotionCircumflexAccent.Handle },
-    { (long)Key.Dollar , MotionDollarSign.Handle },
+    { (long)Convert.ToInt32('0') , Motion0.Handle },
+    { (long)Convert.ToInt32('^'), MotionCircumflexAccent.Handle },
+    { (long)Convert.ToInt32('$') , MotionDollarSign.Handle },
     { (long)Convert.ToInt32('w') , MotionW.Handle },
     { (long)Convert.ToInt32('b') , MotionB.Handle },
     { (long)Convert.ToInt32('j') , MotionJ.Handle },
@@ -58,17 +56,31 @@ public static class MotionBuilder
     { (long)Convert.ToInt32('h') , MotionH.Handle },
     { (long)Convert.ToInt32('l') , MotionL.Handle },
     { (long)Convert.ToInt32('e') , MotionE.Handle },
+    { (long)Convert.ToInt32('G') , MotionShiftG.Handle },
+  };
+
+  private static Dictionary<
+    SubMode, Func<InputKey, EngineState, Motion?>
+  > _subMotionMap = new(){
+    { SubMode.FindFordward , SubFMotion.Handle },
+    { SubMode.Go , SubGMotion.Handle },
   };
 
   public static Motion? HandleMotion(
     InputKey key,
-    List<string> lines,
-    EditorPosition cursorPosition
+    EngineState state
   )
   {
     if (!key.Unicode.HasValue) return null;
 
+
+    if (state.SubMode.HasValue) {
+      // if we have a submode then we handle them as different modes
+      if (!_subMotionMap.TryGetValue(state.SubMode.Value, out var subMotionHandler)) return null;
+      return subMotionHandler(key, state);
+    }
+
     if (!_funcMap.TryGetValue(key.Unicode.Value, out var method)) return null;
-    return method(key, lines, cursorPosition);
+    return method(key, state);
   }
 }

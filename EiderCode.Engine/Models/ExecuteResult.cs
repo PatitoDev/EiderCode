@@ -5,6 +5,7 @@ public record ExecuteResult
 {
   public EditorPosition? NewCursorPosition { get; init; }
   public ViMode? ChangedMode { get; init; }
+  public SubMode? ChangedSubMode { get; init; }
   public Modification? Modification { get; init; }
   // action state after result
   public required ActionState ActionState { get; init; }
