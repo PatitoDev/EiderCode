@@ -36,7 +36,7 @@ public static class ActionBuilder {
     { (long)Convert.ToInt32('a'), Action.Append },
   };
 
-  public static ActionResult GetAction(InputKey key, ViStack stack)
+  public static ActionResult GetAction(InputKey key, ActionState state)
   {
     if (
       !key.Unicode.HasValue ||
@@ -57,7 +57,6 @@ public static class ActionBuilder {
       // execute action
     }
 
-
     return new(){
       Action = action,
       IsReadyToExecute = isReady
@@ -67,19 +66,20 @@ public static class ActionBuilder {
 
   public static ExecuteResult ExectueAction(
     EditorPosition cursorPosition,
-    ViStack stack,
+    ActionState state,
     ViMode mode,
     List<string> lines
   ){
 
-    if (stack.CurrentAction == Action.Change) {
-      if (stack.Motion == null) throw new Exception("invalid path");
+    if (state.CurrentAction == Action.Change) {
+      // handle change - C
+      if (state.Motion == null) throw new NotImplementedException();
 
       // todo - not hardcode this
-      var line = lines[stack.Motion.End.LineNumber];
-      lines[stack.Motion.End.LineNumber] = line.Remove(
-        stack.Motion.Start.CharNumber,
-        stack.Motion.End.CharNumber - stack.Motion.Start.CharNumber
+      var line = lines[state.Motion.End.LineNumber];
+      lines[state.Motion.End.LineNumber] = line.Remove(
+        state.Motion.Start.CharNumber,
+        state.Motion.End.CharNumber - state.Motion.Start.CharNumber
       );
 
       return new(){
@@ -88,14 +88,18 @@ public static class ActionBuilder {
           StartPosition = cursorPosition
         },
         ChangedMode = ViMode.Insert,
+        ActionState = new()
       };
     }
 
-    if (stack.CurrentAction == Action.Insert) {
-      return new(){ ChangedMode = ViMode.Insert };
+    if (state.CurrentAction == Action.Insert) {
+      return new(){
+        ChangedMode = ViMode.Insert,
+        ActionState = new()
+      };
     }
 
-    if (stack.CurrentAction == Action.Append) {
+    if (state.CurrentAction == Action.Append) {
 
       var newCharPosition = Math.Min(
         cursorPosition.CharNumber + 1,
@@ -106,7 +110,8 @@ public static class ActionBuilder {
         NewCursorPosition = new() {
           CharNumber = newCharPosition,
           LineNumber = cursorPosition.LineNumber
-        }
+        },
+        ActionState = new()
       };
     }
 

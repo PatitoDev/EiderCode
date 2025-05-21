@@ -36,8 +36,9 @@ public class CodeEngine
     public List<DocumentLine> DocumentLines;
     public int LineCount { get; private set; } = 0;
     public string FilePath { get; private set; } = "";
+    public ViMode CurrentMode = ViMode.Normal;
 
-    private ViStack viStack;
+    private ActionState ActionState;
 
     public CodeEngine()
     {
@@ -47,7 +48,7 @@ public class CodeEngine
             LineNumber = 0,
             CharNumber = 0
         };
-        viStack = new();
+        ActionState = new();
     }
 
     public Color GetGuiColor(string key)
@@ -71,7 +72,7 @@ public class CodeEngine
     {
         Content = "";
         DocumentLines = new();
-        viStack = new();
+        ActionState = new();
         CursorPosition = new EditorPosition()
         {
             LineNumber = 0,
@@ -122,15 +123,13 @@ public class CodeEngine
 
     public Document GetTokens()
     {
-        // should duplicate?
         return new Document()
         {
             Lines = DocumentLines.ToArray()
         };
-        //_tokenizer.TokenizeDocument(FilePath, Content);
     }
 
-    public void MoveCursorPosition(EditorPosition position)
+    private void SetCursorPosition(EditorPosition position)
     {
         var targetLineNumber = Math.Clamp(position.LineNumber, 0, Lines.Count - 1);
         var targetChar = Math.Clamp(position.CharNumber, 0,
@@ -145,13 +144,6 @@ public class CodeEngine
         OnCursorPositionChanged?.Invoke(this, new EventArgs());
     }
 
-    private Dictionary<Key, string> _insertMap = new(){
-        { Key.Enter, "\\n" },
-        { Key.Space, " " },
-        { Key.Tab, "  " },
-    };
-
-    public ViMode CurrentMode = ViMode.Normal;
 
     public void HandleKeyPress(InputKey key)
     {
@@ -161,94 +153,14 @@ public class CodeEngine
         GD.Print("IsShifted: ", key.IsShiftPressed);
         GD.Print("IsControlPressed: ", key.IsControlPressed);
         */
-
-        if (key.KeyCode == Key.Escape)
-        {
-            CurrentMode = ViMode.Normal;
-            // clear action stacku
-            OnModeChange?.Invoke(this, EventArgs.Empty);
-            viStack = new();
-            return;
-        }
-
-        switch (CurrentMode)
-        {
-            case ViMode.Normal:
-                HandleNormalMode(key);
-                return;
-            case ViMode.Insert:
-                HandleInsertMode(key);
-                return;
-        }
-    }
-
-    private void HandleNormalMode(InputKey key)
-    {
-        var keyChar = key.ToString()[0];
-        // Motion without an action
-        var motion = MotionBuilder.HandleMotion(
-          key,
-          Lines,
-          CursorPosition
+        var result = InputHandler.Handle(
+            key,
+            CurrentMode,
+            Lines,
+            CursorPosition,
+            ActionState
         );
 
-        // handle stack
-        if (motion != null)
-        {
-            // motion is the last action so execute;
-            if (
-              viStack.CurrentAction == null
-            )
-            {
-                MoveCursorPosition(motion.End);
-                return;
-            }
-            else
-            {
-                viStack.Motion = motion;
-
-                var result = ActionBuilder.ExectueAction(
-                  CursorPosition,
-                  viStack,
-                  CurrentMode,
-                  Lines
-                );
-                HandleExecuteResult(result);
-                return;
-            }
-            // else when there is an action
-        }
-
-        var action = ActionBuilder.GetAction(key, viStack);
-        if (action.Action != null)
-        {
-            viStack.CurrentAction = action.Action;
-
-            // add action to stack or execute it if ready
-            if (action.IsReadyToExecute)
-            {
-                // ready to execute so do action
-                var result = ActionBuilder.ExectueAction(
-                  CursorPosition,
-                  viStack,
-                  CurrentMode,
-                  Lines
-                );
-                HandleExecuteResult(result);
-                return;
-            }
-            viStack.CurrentAction = action.Action;
-            return;
-        }
-
-        // reset stack
-        viStack = new();
-    }
-
-    private void HandleInsertMode(InputKey key)
-    {
-        // TODO - use execute result model instead
-        var result = InsertModeBuilder.HandleInsertMode(key, Lines, CursorPosition);
         if (result == null) return;
         HandleExecuteResult(result);
     }
@@ -282,7 +194,7 @@ public class CodeEngine
             }
         }
 
-        viStack = new();
+        ActionState = result.ActionState;
     }
 
     private void HandleModification(Modification modification)

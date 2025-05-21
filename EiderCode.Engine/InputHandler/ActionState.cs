@@ -6,7 +6,7 @@ public enum Modifier {
 }
 
 
-public record ViStack
+public record ActionState
 {
   public int Count = 1;
   public Action? CurrentAction = null;
