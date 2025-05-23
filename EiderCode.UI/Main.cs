@@ -1,11 +1,25 @@
+using System.Runtime.InteropServices;
 using Godot;
-using System;
 
 namespace EiderCode.UI;
 
 public partial class Main : PanelContainer
 {
+    #if GODOT_WINDOWS
+
+    [DllImport("kernel32.dll")]
+    static extern bool AllocConsole();
+    #endif
+
+    public Main(): base()
+    {
+        #if GODOT_WINDOWS
+        AllocConsole();
+        #endif
+    }
+
     private FileExplorer? explorer;
+
 
     public override void _Ready()
     {

@@ -8,6 +8,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using TextMateSharp.Grammars;
+using EiderCode.LSP;
 
 namespace EiderCode.Engine;
 
@@ -44,8 +45,13 @@ public class CodeEngine
     public EngineState State { get; private set; }
     private ActionState ActionState;
 
+    private LSPClient _lspClient;
+
     public CodeEngine()
     {
+        _lspClient = new LSPClient();
+        _lspClient.StartClient("D:\\editor");
+
         State = new() {
             Content = "",
             CursorPosition = new (0,0),
@@ -174,6 +180,13 @@ public class CodeEngine
         GD.Print("IsShifted: ", key.IsShiftPressed);
         GD.Print("IsControlPressed: ", key.IsControlPressed);
         */
+
+        if (key.KeyCode == Key.Space && key.IsControlPressed){
+            _lspClient.GetAutocomplete(FilePath, State.CursorPosition.LineNumber, State.CursorPosition.CharNumber);
+            return;
+        }
+
+
         var result = InputHandler.Handle(
             key,
             State,
@@ -263,5 +276,10 @@ public class CodeEngine
             Content = newText,
             Lines = modification.Lines,
         };
+    }
+
+    public void Dispose()
+    {
+        _lspClient.Dispose();
     }
 }

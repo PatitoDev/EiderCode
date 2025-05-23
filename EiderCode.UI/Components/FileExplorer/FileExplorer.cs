@@ -36,8 +36,8 @@ public partial class FileExplorer : Control
     [Signal]
     public delegate void OnFileOpenEventHandler(string filePath);
 
-    private string testDirPath = "D:/DevStream/ElPatoDraw";
-    private string testTargetFolder = "Front UI";
+    private string testDirPath = "D:/";
+    private string testTargetFolder = "editor";
 
     private FileSystemWatcher _fileSystemWatcher = new();
     private FileIconProvider _fileIconProvider = new FileIconProvider();

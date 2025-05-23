@@ -95,6 +95,7 @@ public partial class CodeRenderer : Control
     {
         base._ExitTree();
         _textServer?.FreeRid(_canvasId);
+        _codeEngine?.Dispose();
     }
 
     public override void _Draw()
